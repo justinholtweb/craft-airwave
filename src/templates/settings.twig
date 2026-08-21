@@ -1,0 +1,177 @@
+{% import '_includes/forms.twig' as forms %}
+
+{% if not plugin.isPro() %}
+    <div class="readable">
+        <blockquote class="note">
+            <p>
+                {{ 'You’re running Airwave Lite: up to {feeds} feeds and {channels} published channel, RSS output, and the built-in display.'|t('airwave', {
+                    feeds: 3,
+                    channels: 1,
+                }) }}
+                {{ 'Pro adds unlimited feeds and channels, keyword filters, importing items as entries, Atom and JSON Feed, merged feeds and link rewriting.'|t('airwave') }}
+            </p>
+        </blockquote>
+    </div>
+{% endif %}
+
+<h2>{{ 'Fetching'|t('airwave') }}</h2>
+
+{{ forms.selectField({
+    label: 'Default refresh interval'|t('airwave'),
+    instructions: 'How long a feed’s items stay fresh before Airwave checks for more. Individual feeds can override this on Pro.'|t('airwave'),
+    id: 'defaultRefreshInterval',
+    name: 'defaultRefreshInterval',
+    value: settings.defaultRefreshInterval,
+    options: [
+        { label: 'Every 15 minutes'|t('airwave'), value: 900 },
+        { label: 'Every 30 minutes'|t('airwave'), value: 1800 },
+        { label: 'Hourly'|t('airwave'), value: 3600 },
+        { label: 'Every 6 hours'|t('airwave'), value: 21600 },
+        { label: 'Daily'|t('airwave'), value: 86400 },
+    ],
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Refresh on the front end'|t('airwave'),
+    instructions: 'Let a page view bring a stale feed up to date. A feed that has never been fetched is read straight away; a stale one is queued, so a slow publisher can’t become a slow page. Turn this off if you’d rather drive everything from cron.'|t('airwave'),
+    id: 'refreshOnRequest',
+    name: 'refreshOnRequest',
+    on: settings.refreshOnRequest,
+}) }}
+
+{{ forms.textField({
+    label: 'Request timeout'|t('airwave'),
+    instructions: 'Seconds to wait for a feed’s server before giving up.'|t('airwave'),
+    id: 'requestTimeout',
+    name: 'requestTimeout',
+    value: settings.requestTimeout,
+    size: 5,
+    type: 'number',
+}) }}
+
+{{ forms.textField({
+    label: 'User agent'|t('airwave'),
+    instructions: 'Sent with every request. Leave blank to identify as Airwave and your site name — some publishers block requests that don’t say who they are.'|t('airwave'),
+    id: 'userAgent',
+    name: 'userAgent',
+    value: settings.userAgent,
+    placeholder: settings.getUserAgent(),
+}) }}
+
+{{ forms.textField({
+    label: 'Maximum feed size'|t('airwave'),
+    instructions: 'Bytes. A feed larger than this is refused rather than downloaded.'|t('airwave'),
+    id: 'maxResponseBytes',
+    name: 'maxResponseBytes',
+    value: settings.maxResponseBytes,
+    size: 12,
+    type: 'number',
+}) }}
+
+<hr>
+
+<h2>{{ 'Safety'|t('airwave') }}</h2>
+
+{{ forms.lightswitchField({
+    label: 'Allow private network fetches'|t('airwave'),
+    instructions: 'Off by default. A feed URL is user input, and letting it point at `127.0.0.1` or a cloud metadata address is how that gets abused. Turn this on only for an internal feed on your own network.'|t('airwave'),
+    id: 'allowPrivateNetworkFetches',
+    name: 'allowPrivateNetworkFetches',
+    on: settings.allowPrivateNetworkFetches,
+    warning: settings.allowPrivateNetworkFetches ? 'Airwave will fetch feeds from private and reserved addresses.'|t('airwave') : null,
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Clean incoming HTML'|t('airwave'),
+    instructions: 'Runs every item through HTML Purifier before it reaches a page. Feed content is markup from a server you don’t control; leave this on.'|t('airwave'),
+    id: 'purifyContent',
+    name: 'purifyContent',
+    on: settings.purifyContent,
+    warning: settings.purifyContent ? null : 'Item HTML will be output exactly as the publisher wrote it.'|t('airwave'),
+}) }}
+
+{{ forms.selectField({
+    label: 'HTML Purifier config'|t('airwave'),
+    instructions: 'A JSON file in `config/htmlpurifier/`. Airwave’s default allows images, links, headings and video embeds, and blocks forms, styles and ids.'|t('airwave'),
+    id: 'purifierConfig',
+    name: 'purifierConfig',
+    value: settings.purifierConfig,
+    options: purifierConfigs,
+}) }}
+
+<hr>
+
+<h2>{{ 'Display'|t('airwave') }}</h2>
+
+{{ forms.textField({
+    label: 'Default number of items'|t('airwave'),
+    id: 'defaultItemLimit',
+    name: 'defaultItemLimit',
+    value: settings.defaultItemLimit,
+    size: 5,
+    type: 'number',
+}) }}
+
+{{ forms.textField({
+    label: 'Items to keep per feed'|t('airwave'),
+    instructions: 'Older items are dropped on each refresh. Imported items are never dropped.'|t('airwave'),
+    id: 'keepItemsPerSource',
+    name: 'keepItemsPerSource',
+    value: settings.keepItemsPerSource,
+    size: 6,
+    type: 'number',
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Include Airwave’s stylesheet'|t('airwave'),
+    instructions: 'A small CSS file that lays out rendered items. Turn it off if you’d rather style the `.airwave` classes yourself.'|t('airwave'),
+    id: 'registerFrontEndStyles',
+    name: 'registerFrontEndStyles',
+    on: settings.registerFrontEndStyles,
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Open item links in a new tab'|t('airwave'),
+    id: 'openLinksInNewTab',
+    name: 'openLinksInNewTab',
+    on: settings.openLinksInNewTab,
+}) }}
+
+{{ forms.textField({
+    label: 'Link rel'|t('airwave'),
+    instructions: 'Applied to every outgoing item link.'|t('airwave'),
+    id: 'linkRel',
+    name: 'linkRel',
+    value: settings.linkRel,
+}) }}
+
+<hr>
+
+<h2>{{ 'Publishing'|t('airwave') }}</h2>
+
+{{ forms.textField({
+    label: 'Channel cache duration'|t('airwave'),
+    instructions: 'Seconds a published feed is cached and told to be cached for. 0 disables caching.'|t('airwave'),
+    id: 'channelCacheDuration',
+    name: 'channelCacheDuration',
+    value: settings.channelCacheDuration,
+    size: 8,
+    type: 'number',
+}) }}
+
+{{ forms.textField({
+    label: 'Generator name'|t('airwave'),
+    instructions: 'What published feeds say produced them.'|t('airwave'),
+    id: 'feedGeneratorName',
+    name: 'feedGeneratorName',
+    value: settings.feedGeneratorName,
+    placeholder: settings.getGeneratorName(),
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Import on refresh'|t('airwave'),
+    instructions: 'When a feed with importing turned on is refreshed, import its new items straight away.'|t('airwave'),
+    id: 'importOnRefresh',
+    name: 'importOnRefresh',
+    on: settings.importOnRefresh,
+}) }}

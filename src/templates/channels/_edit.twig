@@ -1,0 +1,302 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set selectedSubnavItem = 'channels' %}
+{% set fullPageForm = true %}
+{% set docTitle = title %}
+
+{% set crumbs = [
+    { label: 'Airwave'|t('airwave'), url: url('airwave') },
+    { label: 'Channels'|t('airwave'), url: url('airwave/channels') },
+] %}
+
+{% set tabs = {
+    channel: { label: 'Channel'|t('airwave'), url: '#channel' },
+    contents: { label: 'Contents'|t('airwave'), url: '#contents' },
+    items: { label: 'Item fields'|t('airwave'), url: '#items' },
+} %}
+
+{% set mapping = channel.mapping %}
+{% set criteria = channel.criteria %}
+
+{% block content %}
+    <input type="hidden" name="action" value="airwave/channels/save">
+    {{ redirectInput('airwave/channels') }}
+    {% if channel.id %}<input type="hidden" name="channelId" value="{{ channel.id }}">{% endif %}
+
+    <div id="channel">
+        {{ forms.textField({
+            first: true,
+            label: 'Name'|t('airwave'),
+            instructions: 'What to call this channel here.'|t('airwave'),
+            id: 'title',
+            name: 'title',
+            value: channel.title,
+            errors: channel.getErrors('title'),
+            autofocus: true,
+        }) }}
+
+        {{ forms.textField({
+            label: 'URI'|t('airwave'),
+            instructions: 'Where the feed will live, relative to the site’s root — `feed`, `blog/rss`, `news/feed.xml`.'|t('airwave'),
+            id: 'uri',
+            name: 'uri',
+            value: channel.uri,
+            errors: channel.getErrors('uri'),
+            required: true,
+            class: 'code',
+            placeholder: 'feed',
+        }) }}
+
+        {{ forms.textField({
+            label: 'Handle'|t('airwave'),
+            instructions: 'Used in templates — `craft.airwave.channelUrl(\'blog\')`.'|t('airwave'),
+            id: 'handle',
+            name: 'handle',
+            value: channel.handle,
+            errors: channel.getErrors('handle'),
+            class: 'code',
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Format'|t('airwave'),
+            instructions: isPro ? null : 'Atom and JSON Feed are Pro features.'|t('airwave'),
+            id: 'format',
+            name: 'format',
+            value: channel.format,
+            options: formats,
+            errors: channel.getErrors('format'),
+        }) }}
+
+        {% if siteOptions|length > 1 %}
+            {{ forms.selectField({
+                label: 'Site'|t('airwave'),
+                instructions: 'Which site’s content this broadcasts, and whose URL the feed hangs off.'|t('airwave'),
+                id: 'targetSiteId',
+                name: 'targetSiteId',
+                value: channel.targetSiteId,
+                options: siteOptions,
+            }) }}
+        {% else %}
+            <input type="hidden" name="targetSiteId" value="{{ channel.targetSiteId ?? siteOptions[0].value }}">
+        {% endif %}
+
+        <hr>
+
+        {{ forms.textField({
+            label: 'Feed title'|t('airwave'),
+            instructions: 'What subscribers see. Defaults to the site name.'|t('airwave'),
+            id: 'feedTitle',
+            name: 'feedTitle',
+            value: channel.feedTitle,
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Feed description'|t('airwave'),
+            id: 'feedDescription',
+            name: 'feedDescription',
+            value: channel.feedDescription,
+            rows: 2,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Copyright'|t('airwave'),
+            id: 'copyright',
+            name: 'copyright',
+            value: channel.copyright,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Cache for'|t('airwave'),
+            instructions: 'Seconds. Blank uses the site-wide setting; 0 disables caching for this channel.'|t('airwave'),
+            id: 'cacheDuration',
+            name: 'cacheDuration',
+            value: channel.cacheDuration,
+            size: 6,
+            type: 'number',
+        }) }}
+    </div>
+
+    <div id="contents" class="hidden">
+        {{ forms.selectField({
+            label: 'Broadcast'|t('airwave'),
+            id: 'feedSource',
+            name: 'feedSource',
+            value: channel.feedSource,
+            toggle: true,
+            targetPrefix: 'airwave-source-',
+            options: [
+                { label: 'Your own content'|t('airwave'), value: 'elements' },
+                { label: 'Feeds Airwave has collected'|t('airwave'), value: 'feeds' },
+            ],
+        }) }}
+
+        <div id="airwave-source-elements" class="{{ channel.feedSource == 'elements' ? '' : 'hidden' }}">
+            <input type="hidden" name="elementType" value="craft\\elements\\Entry">
+
+            {{ forms.selectField({
+                label: 'Section'|t('airwave'),
+                id: 'criteria-section',
+                name: 'criteria[section]',
+                value: criteria.section ?? '',
+                options: sectionOptions,
+            }) }}
+
+            {{ forms.textField({
+                label: 'Entry type'|t('airwave'),
+                instructions: 'An entry type handle, to narrow it further. Optional.'|t('airwave'),
+                id: 'criteria-type',
+                name: 'criteria[type]',
+                value: criteria.type ?? '',
+                class: 'code',
+            }) }}
+
+            {{ forms.textField({
+                label: 'Order'|t('airwave'),
+                instructions: 'An element query `orderBy` — `postDate DESC` is the default.'|t('airwave'),
+                id: 'criteria-orderBy',
+                name: 'criteria[orderBy]',
+                value: criteria.orderBy ?? '',
+                class: 'code',
+                placeholder: 'postDate DESC',
+            }) }}
+        </div>
+
+        <div id="airwave-source-feeds" class="{{ channel.feedSource == 'feeds' ? '' : 'hidden' }}">
+            {% if feedOptions|length %}
+                {{ forms.checkboxGroupField({
+                    label: 'Feeds'|t('airwave'),
+                    instructions: 'Which collected feeds to re-broadcast. Choose none to include every feed.'|t('airwave'),
+                    id: 'sourceIds',
+                    name: 'sourceIds',
+                    values: channel.sourceIds|map(id => id|string),
+                    options: feedOptions,
+                }) }}
+            {% else %}
+                <p class="light">{{ 'No feeds have been added yet.'|t('airwave') }}</p>
+            {% endif %}
+        </div>
+
+        {{ forms.textField({
+            label: 'How many items'|t('airwave'),
+            id: 'itemLimit',
+            name: 'itemLimit',
+            value: channel.itemLimit,
+            size: 4,
+            type: 'number',
+        }) }}
+    </div>
+
+    <div id="items" class="hidden">
+        <blockquote class="note">
+            <p>
+                {{ 'Leave these blank and Airwave works it out — the title, the URL, a summary or excerpt field, an author, and the first image field it finds.'|t('airwave') }}
+                {% if not isPro %}{{ 'Object templates are a Pro feature.'|t('airwave') }}{% endif %}
+            </p>
+        </blockquote>
+
+        {% for key, config in {
+            title: { label: 'Item title'|t('airwave'), placeholder: '{title}' },
+            link: { label: 'Item link'|t('airwave'), placeholder: '{url}' },
+            summary: { label: 'Item summary'|t('airwave'), placeholder: '{{ object.summary }}' },
+            content: { label: 'Item content'|t('airwave'), placeholder: '{{ object.body }}' },
+            author: { label: 'Item author'|t('airwave'), placeholder: '{{ object.author.fullName }}' },
+            image: { label: 'Item image'|t('airwave'), placeholder: '{{ object.featureImage.one().url ?? \'\' }}' },
+            categories: { label: 'Item categories'|t('airwave'), placeholder: '{{ object.topics.all()|column(\'title\')|join(\',\') }}' },
+        } %}
+            {{ forms.textField({
+                label: config.label,
+                id: 'mapping-' ~ key,
+                name: 'mapping[' ~ key ~ ']',
+                value: attribute(mapping, key),
+                placeholder: config.placeholder,
+                class: 'code',
+                disabled: not isPro,
+            }) }}
+        {% endfor %}
+
+        {{ forms.textField({
+            label: 'Date attribute'|t('airwave'),
+            instructions: 'Which date an item is published on.'|t('airwave'),
+            id: 'mapping-dateAttribute',
+            name: 'mapping[dateAttribute]',
+            value: mapping.dateAttribute,
+            class: 'code',
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Include full content'|t('airwave'),
+            instructions: 'Off publishes summaries only, which is one way to bring readers to the site.'|t('airwave'),
+            id: 'mapping-fullContent',
+            name: 'mapping[fullContent]',
+            on: mapping.fullContent,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Summary length'|t('airwave'),
+            instructions: 'Characters. 0 publishes the whole summary.'|t('airwave'),
+            id: 'mapping-summaryLength',
+            name: 'mapping[summaryLength]',
+            value: mapping.summaryLength,
+            size: 5,
+            type: 'number',
+        }) }}
+    </div>
+{% endblock %}
+
+{% block details %}
+    <div class="meta">
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('airwave'),
+            id: 'enabled',
+            name: 'enabled',
+            on: channel.enabled,
+        }) }}
+    </div>
+
+    {% if channel.id %}
+        <div class="meta read-only">
+            <div class="data">
+                <h5 class="heading">{{ 'Feed URL'|t('airwave') }}</h5>
+                <div class="value"><a href="{{ channel.url }}" target="_blank" rel="noopener" class="go">{{ channel.url }}</a></div>
+            </div>
+            <div class="data">
+                <h5 class="heading">{{ 'Serving as'|t('airwave') }}</h5>
+                <div class="value">{{ channel.servedFormat|upper }}</div>
+            </div>
+        </div>
+
+        <div class="meta">
+            <div class="field">
+                <div class="input">
+                    <a class="btn" href="{{ url('airwave/channels/preview', { channelId: channel.id }) }}" target="_blank">{{ 'Preview the document'|t('airwave') }}</a>
+                </div>
+            </div>
+        </div>
+
+        {% if currentUser.can('airwave:manageChannels') %}
+            <div class="meta">
+                <button type="button" id="airwave-delete-channel" class="btn delete">{{ 'Delete channel'|t('airwave') }}</button>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% js %}
+(function() {
+    const del = document.getElementById('airwave-delete-channel');
+    if (!del) return;
+
+    del.addEventListener('click', async () => {
+        if (!confirm(Craft.t('airwave', 'Delete this channel? Its feed URL will stop answering.'))) return;
+        try {
+            await Craft.sendActionRequest('POST', 'airwave/channels/delete', {
+                data: { channelId: {{ channel.id }} }
+            });
+            window.location.href = Craft.getCpUrl('airwave/channels');
+        } catch (e) {
+            Craft.cp.displayError(e.message || Craft.t('app', 'A server error occurred.'));
+        }
+    });
+})();
+{% endjs %}

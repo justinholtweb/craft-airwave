@@ -1,0 +1,52 @@
+{% import '_includes/forms.twig' as forms %}
+
+{{ forms.lightswitchField({
+    label: 'Allow more than one feed'|t('airwave'),
+    id: 'allowMultiple',
+    name: 'allowMultiple',
+    on: field.allowMultiple,
+}) }}
+
+<hr>
+
+<h2>{{ 'How it renders'|t('airwave') }}</h2>
+<p class="light">{{ 'These apply when a template outputs the field directly — `{{ entry.myFeeds }}`.'|t('airwave') }}</p>
+
+{{ forms.selectField({
+    label: 'Layout'|t('airwave'),
+    id: 'displayOptions-layout',
+    name: 'displayOptions[layout]',
+    value: options.layout,
+    options: layouts|map(l => { label: l|title, value: l }),
+}) }}
+
+{{ forms.textField({
+    label: 'Items to show'|t('airwave'),
+    id: 'displayOptions-limit',
+    name: 'displayOptions[limit]',
+    value: options.limit,
+    size: 4,
+    type: 'number',
+}) }}
+
+{{ forms.selectField({
+    label: 'Item text'|t('airwave'),
+    id: 'displayOptions-content',
+    name: 'displayOptions[content]',
+    value: options.content,
+    options: contentModes|map(m => { label: m|title, value: m }),
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Show images'|t('airwave'),
+    id: 'displayOptions-showImage',
+    name: 'displayOptions[showImage]',
+    on: options.showImage,
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Show dates'|t('airwave'),
+    id: 'displayOptions-showDate',
+    name: 'displayOptions[showDate]',
+    on: options.showDate,
+}) }}

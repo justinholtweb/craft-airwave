@@ -1,0 +1,61 @@
+{% extends '_layouts/cp' %}
+
+{% set title = item.titleText %}
+{% set selectedSubnavItem = 'items' %}
+{% set crumbs = [
+    { label: 'Airwave'|t('airwave'), url: url('airwave') },
+    { label: 'Items'|t('airwave'), url: url('airwave/items') },
+] %}
+
+{% block content %}
+    <div class="readable">
+        {% if item.thumbnailUrl %}
+            <p><img src="{{ item.thumbnailUrl }}" alt="" style="max-width: 100%; border-radius: 6px;" referrerpolicy="no-referrer"></p>
+        {% endif %}
+
+        {#- Purified in the model; there is no raw path to feed content anywhere in Airwave. -#}
+        {{ item.getHtml('full') }}
+    </div>
+{% endblock %}
+
+{% block details %}
+    <div class="meta read-only">
+        {% if source %}
+            <div class="data">
+                <h5 class="heading">{{ 'Feed'|t('airwave') }}</h5>
+                <div class="value"><a href="{{ url('airwave/feeds/' ~ source.id) }}">{{ source.uiLabel }}</a></div>
+            </div>
+        {% endif %}
+
+        <div class="data">
+            <h5 class="heading">{{ 'Published'|t('airwave') }}</h5>
+            <div class="value">{{ item.publishedAt ? item.publishedAt|datetime('short') : '—' }}</div>
+        </div>
+
+        {% if item.author %}
+            <div class="data">
+                <h5 class="heading">{{ 'Author'|t('airwave') }}</h5>
+                <div class="value">{{ item.author }}</div>
+            </div>
+        {% endif %}
+
+        {% if item.url %}
+            <div class="data">
+                <h5 class="heading">{{ 'Original'|t('airwave') }}</h5>
+                <div class="value"><a href="{{ item.url }}" target="_blank" rel="noopener" class="go">{{ item.domain }}</a></div>
+            </div>
+        {% endif %}
+
+        {% if item.categories %}
+            <div class="data">
+                <h5 class="heading">{{ 'Categories'|t('airwave') }}</h5>
+                <div class="value">{{ item.categories|join(', ') }}</div>
+            </div>
+        {% endif %}
+
+        <div class="data">
+            <h5 class="heading">{{ 'Identifier'|t('airwave') }}</h5>
+            <div class="value code small light" style="word-break: break-all;">{{ item.guid }}</div>
+        </div>
+    </div>
+{% endblock %}

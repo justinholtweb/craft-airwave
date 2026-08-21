@@ -1,0 +1,17 @@
+{% import '_includes/forms.twig' as forms %}
+
+{% if allowMultiple %}
+    {{ forms.checkboxGroup({
+        id: id,
+        name: name,
+        values: values,
+        options: options,
+    }) }}
+{% else %}
+    {{ forms.select({
+        id: id,
+        name: name,
+        value: values|first,
+        options: [{ label: 'None'|t('airwave'), value: '' }]|merge(options),
+    }) }}
+{% endif %}

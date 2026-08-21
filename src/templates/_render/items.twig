@@ -1,0 +1,86 @@
+{#
+ # Airwave's built-in item markup.
+ #
+ # Copy this to `templates/_airwave/items.twig` in your site to take it over — Airwave picks that
+ # up automatically, with the same variables and no configuration.
+ #
+ # items   - Airwave Item models
+ # options - a DisplayOptions model
+ # source  - the Source, when a single feed is being rendered
+ # meta    - what that feed says about itself
+ #}
+{% set classes = ['airwave', 'airwave--' ~ options.layout] %}
+{% if options.className %}{% set classes = classes|merge([options.className]) %}{% endif %}
+
+{% if items is empty %}
+    <p class="airwave__empty">{{ options.emptyMessage ?? 'Nothing to show yet.'|t('airwave') }}</p>
+{% else %}
+    <ul class="{{ classes|join(' ') }}"
+        {%- if options.layout in ['grid', 'cards'] %} style="--airwave-columns: {{ options.columns }}"{% endif %}>
+        {% for item in items %}
+            {% set link = item.getLink(options) %}
+            <li class="airwave__item">
+                {% if options.showImage and item.thumbnailUrl %}
+                    <figure class="airwave__thumb">
+                        {% if link %}<a href="{{ link }}"{{ options.newTab ? ' target="_blank"' : '' }} rel="{{ options.rel }}" tabindex="-1" aria-hidden="true">{% endif %}
+                            {#- A remote image with no dimensions shifts the page as it loads, and
+                                lazy loading keeps a long feed off the critical path. -#}
+                            <img src="{{ item.thumbnailUrl }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                        {% if link %}</a>{% endif %}
+                    </figure>
+                {% endif %}
+
+                <div class="airwave__body">
+                    {% if options.showTitle %}
+                        <h3 class="airwave__title">
+                            {% if link %}
+                                <a href="{{ link }}"{{ options.newTab ? ' target="_blank"' : '' }} rel="{{ options.rel }}">{{ item.titleText }}</a>
+                            {% else %}
+                                {{ item.titleText }}
+                            {% endif %}
+                        </h3>
+                    {% endif %}
+
+                    {% if options.showDate or options.showAuthor or options.showSource %}
+                        <p class="airwave__meta">
+                            {% if options.showDate and item.publishedAt %}
+                                <time datetime="{{ item.publishedAt|date('c') }}">
+                                    {{ options.dateFormat ? item.publishedAt|date(options.dateFormat) : item.publishedAt|date('medium') }}
+                                </time>
+                            {% endif %}
+                            {% if options.showAuthor and item.author %}
+                                <span class="airwave__author">{{ item.author }}</span>
+                            {% endif %}
+                            {% if options.showSource %}
+                                <span class="airwave__source">{{ item.sourceName ?? item.domain }}</span>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+
+                    {% if options.content != 'none' %}
+                        {% if options.content == 'full' %}
+                            {#- Purified in the model — there is no raw path to this content. -#}
+                            <div class="airwave__summary">{{ item.getHtml('full') }}</div>
+                        {% else %}
+                            <p class="airwave__summary">{{ item.getExcerpt(options.summaryLength) }}</p>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if options.showCategories and item.categories %}
+                        <ul class="airwave__categories">
+                            {% for category in item.categories|slice(0, 5) %}
+                                <li class="airwave__category">{{ category }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    {% if options.showReadMore and link %}
+                        <a class="airwave__more" href="{{ link }}"{{ options.newTab ? ' target="_blank"' : '' }} rel="{{ options.rel }}">
+                            {{ options.readMoreLabel ?? 'Read more'|t('airwave') }}
+                        </a>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

@@ -1,0 +1,189 @@
+/**
+ * Airwave — feed item styles.
+ *
+ * Deliberately unopinionated about colour and type: everything inherits, so a feed looks like the
+ * page it is on rather than like a plugin. Only layout, spacing and the few things a list of
+ * mixed-length remote content genuinely needs are set here.
+ *
+ * Every rule is scoped under .airwave, and custom properties are the intended override point:
+ *
+ *   .airwave { --airwave-gap: 2rem; --airwave-thumb: 140px; }
+ */
+.airwave {
+    --airwave-gap: 1.5rem;
+    --airwave-thumb: 110px;
+    --airwave-radius: 6px;
+    --airwave-meta-size: 0.8125em;
+    --airwave-rule: currentColor;
+
+    display: block;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.airwave__item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0 0 var(--airwave-gap);
+    margin: 0 0 var(--airwave-gap);
+    border-bottom: 1px solid color-mix(in srgb, var(--airwave-rule) 15%, transparent);
+}
+
+.airwave__item:last-child {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: 0;
+}
+
+.airwave__thumb {
+    flex: 0 0 var(--airwave-thumb);
+    width: var(--airwave-thumb);
+    margin: 0;
+}
+
+.airwave__thumb img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--airwave-radius);
+}
+
+.airwave__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.airwave__title {
+    margin: 0 0 0.35em;
+    font-size: 1.0625em;
+    line-height: 1.3;
+}
+
+.airwave__title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.airwave__title a:hover,
+.airwave__title a:focus-visible {
+    text-decoration: underline;
+}
+
+.airwave__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    margin: 0 0 0.5em;
+    font-size: var(--airwave-meta-size);
+    opacity: 0.7;
+}
+
+.airwave__summary {
+    margin: 0;
+    line-height: 1.55;
+}
+
+/* Remote content sets its own widths and floats constantly; contain the damage. */
+.airwave__summary img,
+.airwave__summary iframe,
+.airwave__summary video,
+.airwave__summary table {
+    max-width: 100%;
+    height: auto;
+}
+
+.airwave__summary > :first-child {
+    margin-top: 0;
+}
+
+.airwave__summary > :last-child {
+    margin-bottom: 0;
+}
+
+.airwave__categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.6em 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--airwave-meta-size);
+}
+
+.airwave__category {
+    padding: 0.15em 0.5em;
+    border: 1px solid color-mix(in srgb, var(--airwave-rule) 25%, transparent);
+    border-radius: 999px;
+}
+
+.airwave__more {
+    display: inline-block;
+    margin-top: 0.6em;
+    font-size: var(--airwave-meta-size);
+}
+
+.airwave__empty {
+    margin: 0;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+/* Grid ------------------------------------------------------------------- */
+
+.airwave--grid,
+.airwave--cards {
+    display: grid;
+    gap: var(--airwave-gap);
+    grid-template-columns: repeat(var(--airwave-columns, 3), minmax(0, 1fr));
+}
+
+.airwave--grid .airwave__item,
+.airwave--cards .airwave__item {
+    display: block;
+    padding: 0;
+    margin: 0;
+    border-bottom: 0;
+}
+
+.airwave--grid .airwave__thumb,
+.airwave--cards .airwave__thumb {
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+.airwave--cards .airwave__item {
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--airwave-rule) 15%, transparent);
+    border-radius: var(--airwave-radius);
+}
+
+.airwave--cards .airwave__thumb {
+    margin: -1rem -1rem 0.75rem;
+    width: calc(100% + 2rem);
+}
+
+.airwave--cards .airwave__thumb img {
+    border-radius: var(--airwave-radius) var(--airwave-radius) 0 0;
+}
+
+@media (max-width: 780px) {
+    .airwave--grid,
+    .airwave--cards {
+        grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .airwave__item {
+        flex-direction: column;
+    }
+
+    .airwave__thumb {
+        width: 100%;
+        flex-basis: auto;
+    }
+}

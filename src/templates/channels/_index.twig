@@ -1,0 +1,15 @@
+{% extends '_layouts/elementindex' %}
+
+{% set title = 'Channels'|t('airwave') %}
+{% set selectedSubnavItem = 'channels' %}
+{% set elementType = 'justinholtweb\\airwave\\elements\\Channel' %}
+
+{% block actionButton %}
+    {% if canCreate %}
+        <a href="{{ url('airwave/channels/new') }}" class="btn submit add icon">{{ 'New channel'|t('airwave') }}</a>
+    {% elseif maxChannels is not null %}
+        <div class="readable">
+            <p class="warning">{{ 'Airwave Lite publishes {max} channel.'|t('airwave', { max: maxChannels }) }}</p>
+        </div>
+    {% endif %}
+{% endblock %}

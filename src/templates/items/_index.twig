@@ -1,0 +1,96 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set title = 'Items'|t('airwave') %}
+{% set selectedSubnavItem = 'items' %}
+{% set crumbs = [{ label: 'Airwave'|t('airwave'), url: url('airwave') }] %}
+
+{% block content %}
+    <form method="get" action="{{ url('airwave/items') }}" class="flex" style="margin-bottom: 18px; align-items: flex-end; gap: 10px;">
+        {{ forms.select({
+            name: 'source',
+            value: sourceHandle,
+            options: [{ label: 'All feeds'|t('airwave'), value: '' }]|merge(
+                sources|map(s => { label: s.uiLabel, value: s.handle })
+            ),
+        }) }}
+
+        {{ forms.text({
+            name: 'search',
+            value: search,
+            placeholder: 'Search titles and summaries'|t('airwave'),
+            class: 'text',
+        }) }}
+
+        {{ forms.select({
+            name: 'imported',
+            value: imported,
+            options: [
+                { label: 'Imported or not'|t('airwave'), value: '' },
+                { label: 'Imported'|t('airwave'), value: '1' },
+                { label: 'Not imported'|t('airwave'), value: '0' },
+            ],
+        }) }}
+
+        {{ forms.select({
+            name: 'sort',
+            value: sort,
+            options: [
+                { label: 'Newest first'|t('airwave'), value: 'newest' },
+                { label: 'Oldest first'|t('airwave'), value: 'oldest' },
+                { label: 'By title'|t('airwave'), value: 'title' },
+            ],
+        }) }}
+
+        <button type="submit" class="btn submit">{{ 'Filter'|t('airwave') }}</button>
+    </form>
+
+    {% if items|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ 'Item'|t('airwave') }}</th>
+                    <th>{{ 'Feed'|t('airwave') }}</th>
+                    <th>{{ 'Published'|t('airwave') }}</th>
+                    <th>{{ 'Imported'|t('airwave') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url('airwave/items/' ~ item.id) }}">{{ item.titleText }}</a>
+                            {% if item.url %}
+                                <a href="{{ item.url }}" target="_blank" rel="noopener" class="go" title="{{ item.url }}"></a>
+                            {% endif %}
+                        </td>
+                        <td class="light">{{ item.sourceName ?? item.sourceHandle }}</td>
+                        <td class="light">{{ item.publishedAt ? item.publishedAt|datetime('short') : '—' }}</td>
+                        <td>
+                            {% if item.importedElementId %}
+                                <a href="{{ cpUrl('') }}" data-icon="check" title="{{ 'Imported'|t('airwave') }}"></a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if page > 1 or hasMore %}
+            <div class="flex" style="margin-top: 16px; gap: 8px;">
+                {% if page > 1 %}
+                    <a class="btn" href="{{ url('airwave/items', { source: sourceHandle, search: search, sort: sort, imported: imported, page: page - 1 }) }}">{{ '← Previous'|t('airwave') }}</a>
+                {% endif %}
+                {% if hasMore %}
+                    <a class="btn" href="{{ url('airwave/items', { source: sourceHandle, search: search, sort: sort, imported: imported, page: page + 1 }) }}">{{ 'Next →'|t('airwave') }}</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="zilch">
+            <p>{{ 'No items yet.'|t('airwave') }}</p>
+            <p class="light">{{ 'Add a feed and refresh it, and what it publishes turns up here.'|t('airwave') }}</p>
+            <a class="btn submit" href="{{ url('airwave/feeds/new') }}">{{ 'New feed'|t('airwave') }}</a>
+        </div>
+    {% endif %}
+{% endblock %}

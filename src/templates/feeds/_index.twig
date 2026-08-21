@@ -1,0 +1,39 @@
+{% extends '_layouts/elementindex' %}
+
+{% set title = 'Feeds'|t('airwave') %}
+{% set selectedSubnavItem = 'feeds' %}
+{% set elementType = 'justinholtweb\\airwave\\elements\\Source' %}
+
+{% block actionButton %}
+    {% if canCreate %}
+        <a href="{{ url('airwave/feeds/new') }}" class="btn submit add icon">{{ 'New feed'|t('airwave') }}</a>
+    {% elseif maxSources is not null %}
+        <div class="readable">
+            <p class="warning">
+                {{ 'Airwave Lite holds up to {max} feeds.'|t('airwave', { max: maxSources }) }}
+            </p>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block sidebar %}
+    {{ parent() }}
+
+    {% if stats.sources %}
+        <div class="pane" style="margin-top: 14px; padding: 12px;">
+            <p class="light" style="margin: 0 0 4px;">
+                {{ '{count} items collected'|t('airwave', { count: stats.items|number }) }}
+            </p>
+            {% if stats.imported %}
+                <p class="light" style="margin: 0 0 4px;">
+                    {{ '{count} imported as entries'|t('airwave', { count: stats.imported|number }) }}
+                </p>
+            {% endif %}
+            {% if stats.failing %}
+                <p class="error" style="margin: 0;">
+                    {{ '{count} failing'|t('airwave', { count: stats.failing }) }}
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

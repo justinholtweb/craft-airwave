@@ -1,0 +1,651 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set selectedSubnavItem = 'feeds' %}
+{% set fullPageForm = true %}
+{% set docTitle = title %}
+
+{% set crumbs = [
+    { label: 'Airwave'|t('airwave'), url: url('airwave') },
+    { label: 'Feeds'|t('airwave'), url: url('airwave/feeds') },
+] %}
+
+{% set tabs = {
+    feed: { label: 'Feed'|t('airwave'), url: '#feed' },
+    display: { label: 'Display'|t('airwave'), url: '#display' },
+    filters: { label: 'Filters'|t('airwave') ~ (isPro ? '' : ' ★'), url: '#filters' },
+    import: { label: 'Import'|t('airwave') ~ (isPro ? '' : ' ★'), url: '#import' },
+} %}
+
+{% set display = source.displayOptions %}
+{% set filters = source.filters %}
+{% set import = source.importConfig %}
+{% set headers = source.fetchOptions.headers ?? {} %}
+
+{% block content %}
+    <input type="hidden" name="action" value="airwave/feeds/save">
+    {{ redirectInput('airwave/feeds') }}
+    {% if source.id %}<input type="hidden" name="sourceId" value="{{ source.id }}">{% endif %}
+
+    <div id="feed">
+        {{ forms.textField({
+            first: true,
+            label: 'Name'|t('airwave'),
+            instructions: 'What to call this feed here. Leave blank to use the title the feed gives itself.'|t('airwave'),
+            id: 'title',
+            name: 'title',
+            value: source.title,
+            errors: source.getErrors('title'),
+            autofocus: true,
+        }) }}
+
+        {{ forms.autosuggestField({
+            label: 'Feed URL'|t('airwave'),
+            instructions: 'The address of an RSS, Atom or JSON feed. Paste a site address instead and press Find to look one up.'|t('airwave'),
+            id: 'url',
+            name: 'url',
+            value: source.url,
+            errors: source.getErrors('url'),
+            required: true,
+            suggestEnvVars: false,
+            placeholder: 'https://example.com/feed',
+        }) }}
+
+        <div class="field">
+            <div class="input">
+                <button type="button" id="airwave-discover" class="btn">{{ 'Find the feed'|t('airwave') }}</button>
+                <span id="airwave-discover-spinner" class="spinner hidden"></span>
+            </div>
+            <div id="airwave-discover-results" class="hidden" style="margin-top: 10px;"></div>
+        </div>
+
+        {{ forms.textField({
+            label: 'Handle'|t('airwave'),
+            instructions: 'Used in templates and reference tags. Leave blank and Airwave will make one.'|t('airwave'),
+            id: 'handle',
+            name: 'handle',
+            value: source.handle,
+            errors: source.getErrors('handle'),
+            class: 'code',
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Refresh every'|t('airwave'),
+            instructions: isPro
+                ? 'How often to check this feed for new items.'|t('airwave')
+                : 'Per-feed intervals are a Pro feature. This feed uses the site default.'|t('airwave'),
+            id: 'refreshInterval',
+            name: 'refreshInterval',
+            value: source.refreshInterval,
+            options: intervals,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Items to keep'|t('airwave'),
+            instructions: 'How many of this feed’s items to store. Leave blank to use the site default.'|t('airwave'),
+            id: 'itemLimit',
+            name: 'itemLimit',
+            value: source.itemLimit,
+            size: 5,
+            type: 'number',
+            errors: source.getErrors('itemLimit'),
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Request headers'|t('airwave'),
+            instructions: 'One `Name: value` per line, for a feed behind a token. Values can be environment variables — `Authorization: $FEED_TOKEN` — so the token stays out of the database.'|t('airwave'),
+            id: 'headers',
+            name: 'headers',
+            value: headers|map((v, k) => k ~ ': ' ~ v)|join("\n"),
+            rows: 3,
+            class: 'code',
+        }) }}
+    </div>
+
+    <div id="display" class="hidden">
+        {{ forms.selectField({
+            label: 'Layout'|t('airwave'),
+            id: 'displayOptions-layout',
+            name: 'displayOptions[layout]',
+            value: display.layout,
+            options: [
+                { label: 'List'|t('airwave'), value: 'list' },
+                { label: 'Grid'|t('airwave'), value: 'grid' },
+                { label: 'Cards'|t('airwave'), value: 'cards' },
+            ],
+        }) }}
+
+        {{ forms.textField({
+            label: 'Items to show'|t('airwave'),
+            id: 'displayOptions-limit',
+            name: 'displayOptions[limit]',
+            value: display.limit,
+            size: 4,
+            type: 'number',
+        }) }}
+
+        {{ forms.textField({
+            label: 'Columns'|t('airwave'),
+            instructions: 'For the grid and card layouts.'|t('airwave'),
+            id: 'displayOptions-columns',
+            name: 'displayOptions[columns]',
+            value: display.columns,
+            size: 3,
+            type: 'number',
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Item text'|t('airwave'),
+            instructions: isPro ? null : 'Full content is a Pro feature.'|t('airwave'),
+            id: 'displayOptions-content',
+            name: 'displayOptions[content]',
+            value: display.content,
+            options: [
+                { label: 'None'|t('airwave'), value: 'none' },
+                { label: 'Summary'|t('airwave'), value: 'summary' },
+                { label: 'Full content'|t('airwave'), value: 'full', disabled: not isPro },
+            ],
+        }) }}
+
+        {{ forms.textField({
+            label: 'Summary length'|t('airwave'),
+            instructions: 'Characters. 0 shows the whole summary.'|t('airwave'),
+            id: 'displayOptions-summaryLength',
+            name: 'displayOptions[summaryLength]',
+            value: display.summaryLength,
+            size: 5,
+            type: 'number',
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Order'|t('airwave'),
+            id: 'displayOptions-sort',
+            name: 'displayOptions[sort]',
+            value: display.sort,
+            options: [
+                { label: 'Newest first'|t('airwave'), value: 'newest' },
+                { label: 'Oldest first'|t('airwave'), value: 'oldest' },
+                { label: 'By title'|t('airwave'), value: 'title' },
+                { label: 'Random'|t('airwave'), value: 'random' },
+            ],
+        }) }}
+
+        {% for key, label in {
+            showImage: 'Image'|t('airwave'),
+            showDate: 'Date'|t('airwave'),
+            showAuthor: 'Author'|t('airwave'),
+            showCategories: 'Categories'|t('airwave'),
+            showReadMore: 'A “read more” link'|t('airwave'),
+        } %}
+            {{ forms.lightswitchField({
+                label: label,
+                id: 'displayOptions-' ~ key,
+                name: 'displayOptions[' ~ key ~ ']',
+                on: attribute(display, key),
+            }) }}
+        {% endfor %}
+
+        {{ forms.textField({
+            label: 'Link parameters'|t('airwave'),
+            instructions: isPro
+                ? 'Appended to every outgoing item link — `utm_source=airwave&utm_medium=feed`.'|t('airwave')
+                : 'Link rewriting is a Pro feature.'|t('airwave'),
+            id: 'displayOptions-linkParams',
+            name: 'displayOptions[linkParams]',
+            value: display.linkParams|url_encode,
+            disabled: not isPro,
+            class: 'code',
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Rewrite links'|t('airwave'),
+            id: 'displayOptions-rewriteLinks',
+            name: 'displayOptions[rewriteLinks]',
+            on: display.rewriteLinks,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Template override'|t('airwave'),
+            instructions: 'A site template to render items with. Leave blank to use Airwave’s, or put your own at `_airwave/items.twig` and it will be found automatically.'|t('airwave'),
+            id: 'displayOptions-template',
+            name: 'displayOptions[template]',
+            value: display.template,
+            class: 'code',
+        }) }}
+    </div>
+
+    <div id="filters" class="hidden">
+        {% if not isPro %}
+            <blockquote class="note">
+                <p>{{ 'Filters are a Pro feature. Every item a feed publishes is stored on Lite.'|t('airwave') }}</p>
+            </blockquote>
+        {% endif %}
+
+        {{ forms.textareaField({
+            label: 'Only keep items matching'|t('airwave'),
+            instructions: 'One keyword or phrase per line, or separated by commas. Leave blank to keep everything.'|t('airwave'),
+            id: 'filters-include',
+            name: 'filters[include]',
+            value: filters.include|join("\n"),
+            rows: 3,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Never keep items matching'|t('airwave'),
+            instructions: 'Checked first — an item matching both is dropped.'|t('airwave'),
+            id: 'filters-exclude',
+            name: 'filters[exclude]',
+            value: filters.exclude|join("\n"),
+            rows: 3,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.checkboxGroupField({
+            label: 'Look for keywords in'|t('airwave'),
+            id: 'filters-searchIn',
+            name: 'filters[searchIn]',
+            values: filters.searchIn,
+            options: [
+                { label: 'Title'|t('airwave'), value: 'title' },
+                { label: 'Summary'|t('airwave'), value: 'summary' },
+                { label: 'Full content'|t('airwave'), value: 'content' },
+                { label: 'Author'|t('airwave'), value: 'author' },
+                { label: 'Categories'|t('airwave'), value: 'categories' },
+            ],
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Match'|t('airwave'),
+            id: 'filters-matchMode',
+            name: 'filters[matchMode]',
+            value: filters.matchMode,
+            options: [
+                { label: 'Any keyword'|t('airwave'), value: 'any' },
+                { label: 'Every keyword'|t('airwave'), value: 'all' },
+            ],
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Only categories'|t('airwave'),
+            instructions: 'Comma separated.'|t('airwave') ~ (categoryCounts|length ? ' ' ~ 'Seen in this feed: {list}.'|t('airwave', { list: categoryCounts|keys|slice(0, 12)|join(', ') }) : ''),
+            id: 'filters-categories',
+            name: 'filters[categories]',
+            value: filters.categories|join(', '),
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.textField({
+            label: 'Ignore items older than'|t('airwave'),
+            instructions: 'Days. Blank keeps everything, however old.'|t('airwave'),
+            id: 'filters-maxAgeDays',
+            name: 'filters[maxAgeDays]',
+            value: filters.maxAgeDays,
+            size: 4,
+            type: 'number',
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Only items with an image'|t('airwave'),
+            id: 'filters-requireImage',
+            name: 'filters[requireImage]',
+            on: filters.requireImage,
+            disabled: not isPro,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Drop repeated titles'|t('airwave'),
+            instructions: 'Useful when several feeds syndicate the same wire story.'|t('airwave'),
+            id: 'filters-dedupeTitles',
+            name: 'filters[dedupeTitles]',
+            on: filters.dedupeTitles,
+            disabled: not isPro,
+        }) }}
+
+        {% if isPro and source.id %}
+            <hr>
+            <div class="field">
+                <div class="heading"><label>{{ 'Items already stored'|t('airwave') }}</label></div>
+                <div class="instructions"><p>{{ 'Filters normally apply to new items only. This re-runs them over what’s already here and deletes what no longer matches — except items that have been imported, which are left alone.'|t('airwave') }}</p></div>
+                <div class="input">
+                    <button type="button" id="airwave-reapply" class="btn">{{ 'Re-apply filters now'|t('airwave') }}</button>
+                    <span id="airwave-reapply-spinner" class="spinner hidden"></span>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="import" class="hidden">
+        {% if not isPro %}
+            <blockquote class="note">
+                <p>{{ 'Importing feed items as entries is a Pro feature.'|t('airwave') }}</p>
+            </blockquote>
+        {% elseif not canImport %}
+            <blockquote class="note">
+                <p>{{ 'You don’t have permission to set up importing.'|t('airwave') }}</p>
+            </blockquote>
+        {% endif %}
+
+        {{ forms.lightswitchField({
+            label: 'Import items as entries'|t('airwave'),
+            instructions: 'New items become entries the next time this feed is refreshed.'|t('airwave'),
+            id: 'importEnabled',
+            name: 'importEnabled',
+            on: source.importEnabled,
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Section'|t('airwave'),
+            id: 'importConfig-sectionUid',
+            name: 'importConfig[sectionUid]',
+            value: import.sectionUid,
+            options: sections,
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.textField({
+            label: 'Entry type UID'|t('airwave'),
+            instructions: 'Which entry type to create. Copy it from the entry type’s settings URL.'|t('airwave'),
+            id: 'importConfig-entryTypeUid',
+            name: 'importConfig[entryTypeUid]',
+            value: import.entryTypeUid,
+            class: 'code',
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.selectField({
+            label: 'New entries are'|t('airwave'),
+            id: 'importConfig-status',
+            name: 'importConfig[status]',
+            value: import.status,
+            options: [
+                { label: 'Disabled — review before publishing'|t('airwave'), value: 'disabled' },
+                { label: 'Enabled — live straight away'|t('airwave'), value: 'enabled' },
+            ],
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Post date'|t('airwave'),
+            id: 'importConfig-dateSource',
+            name: 'importConfig[dateSource]',
+            value: import.dateSource,
+            options: [
+                { label: 'The item’s own date'|t('airwave'), value: 'item' },
+                { label: 'When it was imported'|t('airwave'), value: 'now' },
+            ],
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.editableTableField({
+            label: 'Field mapping'|t('airwave'),
+            instructions: 'Which part of an item goes into which field. Use a token — `summary`, `content`, `url`, `author`, `image`, `categories`, `guid`, `domain`, `publishedAt` — or a Twig template such as `{{ item.summary }} <a href="{{ item.url }}">Read on</a>`.'|t('airwave'),
+            id: 'importConfig-fieldMap',
+            name: 'importConfig[fieldMap]',
+            cols: {
+                field: { heading: 'Field handle'|t('airwave'), type: 'singleline', code: true },
+                value: { heading: 'From'|t('airwave'), type: 'singleline', code: true },
+            },
+            rows: import.fieldMap|map((v, k) => { field: k, value: v })|values,
+            addRowLabel: 'Add a mapping'|t('airwave'),
+            static: not (isPro and canImport),
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Download images'|t('airwave'),
+            instructions: 'Copies each item’s image into a volume and puts it in an Assets field.'|t('airwave'),
+            id: 'importConfig-importImages',
+            name: 'importConfig[importImages]',
+            on: import.importImages,
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Image volume'|t('airwave'),
+            id: 'importConfig-imageVolumeUid',
+            name: 'importConfig[imageVolumeUid]',
+            value: import.imageVolumeUid,
+            options: volumes,
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.textField({
+            label: 'Assets field handle'|t('airwave'),
+            id: 'importConfig-imageField',
+            name: 'importConfig[imageField]',
+            value: import.imageField,
+            class: 'code',
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {{ forms.textField({
+            label: 'Items per run'|t('airwave'),
+            instructions: 'Keeps a first import of a long backlog from becoming one enormous job.'|t('airwave'),
+            id: 'importConfig-limitPerRun',
+            name: 'importConfig[limitPerRun]',
+            value: import.limitPerRun,
+            size: 4,
+            type: 'number',
+            disabled: not (isPro and canImport),
+        }) }}
+
+        {% if isPro and canImport and source.id %}
+            <hr>
+            <div class="field">
+                <div class="input">
+                    <button type="button" id="airwave-dryrun" class="btn">{{ 'Show what would be imported'|t('airwave') }}</button>
+                    <button type="button" id="airwave-import" class="btn submit">{{ 'Import now'|t('airwave') }}</button>
+                    <span id="airwave-import-spinner" class="spinner hidden"></span>
+                </div>
+                <div id="airwave-import-results" class="hidden" style="margin-top: 10px;"></div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block details %}
+    <div class="meta">
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('airwave'),
+            id: 'enabled',
+            name: 'enabled',
+            on: source.enabled,
+        }) }}
+    </div>
+
+    {% if source.id %}
+        <div class="meta read-only">
+            <div class="data">
+                <h5 class="heading">{{ 'Health'|t('airwave') }}</h5>
+                <div class="value">
+                    <span class="status {{ source.lastStatus == 'ok' ? 'live' : (source.lastStatus == 'error' ? 'expired' : 'pending') }}"></span>
+                    {{ source.lastStatus == 'ok' ? 'OK'|t('airwave') : (source.lastStatus == 'error' ? 'Failing'|t('airwave') : 'Never fetched'|t('airwave')) }}
+                </div>
+            </div>
+
+            {% if source.lastError %}
+                <div class="data">
+                    <h5 class="heading">{{ 'Last error'|t('airwave') }}</h5>
+                    <div class="value error">{{ source.lastError }}</div>
+                </div>
+            {% endif %}
+
+            <div class="data">
+                <h5 class="heading">{{ 'Last checked'|t('airwave') }}</h5>
+                <div class="value">{{ source.lastFetchedAt ? source.lastFetchedAt|datetime('short') : '—' }}</div>
+            </div>
+
+            <div class="data">
+                <h5 class="heading">{{ 'Items stored'|t('airwave') }}</h5>
+                <div class="value">
+                    <a href="{{ url('airwave/items', { source: source.handle }) }}">{{ source.itemCount }}</a>
+                </div>
+            </div>
+
+            {% if source.meta.format %}
+                <div class="data">
+                    <h5 class="heading">{{ 'Feed type'|t('airwave') }}</h5>
+                    <div class="value">{{ source.meta.format|upper }}</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="meta">
+            <div class="field">
+                <div class="heading"><label>{{ 'Embed code'|t('airwave') }}</label></div>
+                <div class="instructions"><p>{{ 'Paste this into any rich text field to render the feed there.'|t('airwave') }}</p></div>
+                {#- The macro is `copytext`, all lowercase — Twig macro names are case-sensitive,
+                    and `copyTextBtn` is a runtime error rather than a missing button. -#}
+                {{ forms.copytext({
+                    class: 'code',
+                    value: source.embedCode,
+                    readonly: true,
+                }) }}
+            </div>
+        </div>
+
+        {% if canRefresh %}
+            <div class="meta">
+                <div class="field">
+                    <div class="input">
+                        <button type="button" id="airwave-refresh" class="btn">{{ 'Refresh now'|t('airwave') }}</button>
+                        <span id="airwave-refresh-spinner" class="spinner hidden"></span>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if currentUser.can('airwave:deleteFeeds') %}
+            <div class="meta">
+                <button type="button" id="airwave-delete" class="btn delete">{{ 'Delete feed'|t('airwave') }}</button>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% js %}
+{# Secondary actions post with Craft.sendActionRequest rather than their own <form>: a CP page is
+   already inside one, and nesting forms silently breaks the outer one's submit. #}
+(function() {
+    const sourceId = {{ source.id ?? 'null' }};
+
+    function busy(spinner, on) {
+        const el = document.getElementById(spinner);
+        if (el) el.classList.toggle('hidden', !on);
+    }
+
+    const discover = document.getElementById('airwave-discover');
+    if (discover) {
+        discover.addEventListener('click', async () => {
+            const input = document.getElementById('url');
+            const results = document.getElementById('airwave-discover-results');
+            if (!input.value.trim()) return;
+
+            busy('airwave-discover-spinner', true);
+            results.classList.add('hidden');
+
+            try {
+                const response = await Craft.sendActionRequest('POST', 'airwave/feeds/discover', {
+                    data: { url: input.value.trim() }
+                });
+                const data = response.data;
+                busy('airwave-discover-spinner', false);
+
+                if (!data.success) {
+                    Craft.cp.displayError(data.message || Craft.t('airwave', 'Nothing found.'));
+                    return;
+                }
+
+                if (data.isFeed) {
+                    input.value = data.feeds[0].url;
+                    Craft.cp.displayNotice(Craft.t('airwave', 'That is a feed — {count} items.', { count: data.feeds[0].items }));
+                    return;
+                }
+
+                results.innerHTML = data.feeds.map(feed =>
+                    `<div style="margin-bottom:6px"><button type="button" class="btn small airwave-pick" data-url="${feed.url}">${Craft.escapeHtml(feed.title || feed.url)}</button> <span class="light code">${Craft.escapeHtml(feed.url)}</span></div>`
+                ).join('');
+                results.classList.remove('hidden');
+                results.querySelectorAll('.airwave-pick').forEach(button => {
+                    button.addEventListener('click', () => {
+                        input.value = button.dataset.url;
+                        results.classList.add('hidden');
+                    });
+                });
+            } catch (e) {
+                busy('airwave-discover-spinner', false);
+                Craft.cp.displayError(e.message);
+            }
+        });
+    }
+
+    async function post(action, data, spinner, onDone) {
+        busy(spinner, true);
+        try {
+            const response = await Craft.sendActionRequest('POST', action, { data });
+            busy(spinner, false);
+            const payload = response.data;
+            if (payload.success === false) {
+                Craft.cp.displayError(payload.message);
+            } else if (payload.message) {
+                Craft.cp.displayNotice(payload.message);
+            }
+            if (onDone) onDone(payload);
+        } catch (e) {
+            busy(spinner, false);
+            Craft.cp.displayError(e.message || Craft.t('app', 'A server error occurred.'));
+        }
+    }
+
+    const refresh = document.getElementById('airwave-refresh');
+    if (refresh) {
+        refresh.addEventListener('click', () => post('airwave/feeds/refresh', { sourceId }, 'airwave-refresh-spinner', () => {
+            setTimeout(() => window.location.reload(), 900);
+        }));
+    }
+
+    const reapply = document.getElementById('airwave-reapply');
+    if (reapply) {
+        reapply.addEventListener('click', () => {
+            if (!confirm(Craft.t('airwave', 'This deletes stored items that no longer match. Continue?'))) return;
+            post('airwave/feeds/reapply-filters', { sourceId }, 'airwave-reapply-spinner');
+        });
+    }
+
+    const dryRun = document.getElementById('airwave-dryrun');
+    if (dryRun) {
+        dryRun.addEventListener('click', () => post('airwave/feeds/import', { sourceId, dryRun: 1 }, 'airwave-import-spinner', (payload) => {
+            const results = document.getElementById('airwave-import-results');
+            if (!payload.previews || !payload.previews.length) {
+                results.innerHTML = '<p class="light">' + Craft.t('airwave', 'Nothing waiting to be imported.') + '</p>';
+            } else {
+                results.innerHTML = '<ul>' + payload.previews.map(p =>
+                    `<li><span class="light code">${Craft.escapeHtml(p.date || '—')}</span> ${Craft.escapeHtml(p.title)}</li>`
+                ).join('') + '</ul>';
+            }
+            results.classList.remove('hidden');
+        }));
+    }
+
+    const importNow = document.getElementById('airwave-import');
+    if (importNow) {
+        importNow.addEventListener('click', () => post('airwave/feeds/import', { sourceId }, 'airwave-import-spinner'));
+    }
+
+    const del = document.getElementById('airwave-delete');
+    if (del) {
+        del.addEventListener('click', () => {
+            if (!confirm(Craft.t('airwave', 'Delete this feed and everything it has collected?'))) return;
+            post('airwave/feeds/delete', { sourceId }, null, () => {
+                window.location.href = Craft.getCpUrl('airwave/feeds');
+            });
+        });
+    }
+})();
+{% endjs %}
