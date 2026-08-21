@@ -31,6 +31,7 @@ php craft plugin/install airwave
 
 | | Lite (free) | Pro |
 |---|---|---|
+| **Price** | **Free** | **$59**, $29/year renewal |
 | Feeds | 3 | Unlimited |
 | Published channels | 1 | Unlimited |
 | Output formats | RSS 2.0 | RSS, Atom, JSON Feed |

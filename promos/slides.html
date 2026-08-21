@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<!-- handmade: hand-tuned deck -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Airwave — Plugin Store promos</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --charcoal: #0f0f1a;
+    --charcoal-light: #1a1a2e;
+    --charcoal-lighter: #252540;
+    --accent: #5B2FA8;
+    --accent-light: #9B6DF3;
+    --signal: #4CC9F0;
+    --off-white: #f0f0f5;
+  }
+
+  html { background: #000; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--off-white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- slide shell ---------------------------------------------------- */
+  .slide {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 85% 15%, rgba(91, 47, 168, 0.28) 0%, transparent 42%),
+      radial-gradient(ellipse at 65% 5%,  rgba(155, 109, 243, 0.14) 0%, transparent 35%),
+      radial-gradient(ellipse at 15% 85%, rgba(76, 201, 240, 0.08) 0%, transparent 40%),
+      radial-gradient(ellipse at 35% 95%, rgba(91, 47, 168, 0.10) 0%, transparent 35%),
+      linear-gradient(135deg, #0f0f1a 0%, #16122a 30%, #1a1430 60%, #0f0f1a 100%);
+  }
+
+  /* Oversized watermark, echoing the app icon */
+  .slide::after {
+    content: '';
+    position: absolute;
+    top: -18%;
+    left: -12%;
+    width: 1180px;
+    height: 1180px;
+    background: url('assets/watermark.svg') no-repeat center / contain;
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  /* Hairline along the top edge */
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--signal), var(--accent));
+    z-index: 5;
+  }
+
+  .inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 118px 130px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---- type ------------------------------------------------------------ */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 245, 0.62);
+    margin-bottom: 34px;
+  }
+  .eyebrow .rule {
+    width: 58px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent-light);
+  }
+
+  h1, h2 {
+    font-family: 'Jersey 20', sans-serif;
+    font-weight: 400;
+    line-height: 0.9;
+    letter-spacing: 0.005em;
+  }
+
+  .gradient-text {
+    background: linear-gradient(100deg, #5B2FA8 0%, #9B6DF3 38%, #4CC9F0 68%, #5B2FA8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .lede {
+    font-size: 34px;
+    line-height: 1.5;
+    color: rgba(240, 240, 245, 0.72);
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  /* ---- cover slide ----------------------------------------------------- */
+  .cover .inner { gap: 90px; }
+  .cover .copy { flex: 1 1 auto; }
+  .cover h1 { font-size: 210px; margin-bottom: 26px; }
+  .cover .tagline {
+    font-family: 'Jersey 20', sans-serif;
+    font-size: 60px;
+    line-height: 1.02;
+    color: var(--off-white);
+    margin-bottom: 40px;
+    max-width: 15ch;
+  }
+  .cover .lede { max-width: 27ch; font-size: 30px; }
+
+  .cover .mark {
+    flex: 0 0 auto;
+    width: 460px;
+    height: 460px;
+    filter: drop-shadow(14px 14px 0 rgba(0, 0, 0, 0.35));
+  }
+  .cover .mark img { width: 100%; height: 100%; display: block; }
+
+  .badges { display: flex; gap: 16px; margin-top: 52px; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 26px;
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(240, 240, 245, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+  }
+  .badge .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent-light);
+  }
+
+  /* ---- both-directions statement --------------------------------------- */
+  .statement .inner { flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .statement .eyebrow { justify-content: center; }
+  .statement h2 { font-size: 100px; margin-bottom: 48px; }
+
+  .duplex { display: flex; align-items: stretch; gap: 34px; }
+  .duplex .side {
+    flex: 0 0 520px;
+    padding: 42px 40px;
+    border-radius: 20px;
+    background: rgba(37, 37, 64, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+  }
+  .duplex .side .way {
+    font-size: 24px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 245, 0.42);
+    margin-bottom: 24px;
+  }
+  .duplex .side .fmt {
+    font-size: 33px;
+    line-height: 1.85;
+    color: var(--off-white);
+  }
+  .duplex .side .fmt span { color: rgba(240, 240, 245, 0.45); }
+
+  .duplex .hub {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .duplex .hub img { width: 168px; height: 168px; border-radius: 38px; }
+  .duplex .hub .shape {
+    font-size: 22px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+  }
+
+  .duplex .arrow {
+    align-self: center;
+    flex: 0 0 auto;
+    width: 74px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(155,109,243,0.15), var(--accent-light));
+    position: relative;
+  }
+  .duplex .arrow::after {
+    content: '';
+    position: absolute;
+    right: -3px; top: 50%;
+    width: 16px; height: 16px;
+    transform: translateY(-50%) rotate(-45deg);
+    border-right: 4px solid var(--accent-light);
+    border-bottom: 4px solid var(--accent-light);
+    border-radius: 2px;
+  }
+  .duplex .arrow.out { background: linear-gradient(90deg, rgba(76,201,240,0.15), var(--signal)); }
+  .duplex .arrow.out::after {
+    border-right-color: var(--signal);
+    border-bottom-color: var(--signal);
+  }
+
+  .statement .lede { margin-top: 46px; max-width: 62ch; font-size: 30px; }
+
+  /* ---- feature slides -------------------------------------------------- */
+  .feature .inner { align-items: center; }
+  .feature .copy { width: 780px; flex: 0 0 780px; }
+  .feature h2 { font-size: 108px; margin-bottom: 30px; }
+  .feature .lede { max-width: 21ch; }
+
+  .points {
+    list-style: none;
+    margin-top: 44px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    font-size: 25px;
+    line-height: 1.4;
+    color: rgba(240, 240, 245, 0.6);
+  }
+  .points li .tick {
+    flex: 0 0 auto;
+    margin-top: 9px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent-light);
+  }
+
+  /* Right-hand panel shared by the code, rules, table and channel slides */
+  .panel {
+    position: absolute;
+    top: 50%;
+    left: 900px;
+    right: 130px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .note {
+    font-size: 24px;
+    line-height: 1.5;
+    color: rgba(240, 240, 245, 0.45);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* ---- code cards ------------------------------------------------------- */
+  .card {
+    padding: 34px 38px;
+    border-radius: 16px;
+    background: rgba(37, 37, 64, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .card .cap {
+    font-size: 21px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 245, 0.42);
+    margin-bottom: 20px;
+  }
+  .card .code { font-size: 29px; line-height: 1.7; color: var(--off-white); }
+  .card .code .tag { color: var(--accent-light); }
+  .card .code .arg { color: var(--signal); }
+  .card .code .dim { color: rgba(240, 240, 245, 0.42); }
+
+  /* ---- filter rules ----------------------------------------------------- */
+  .rule-row {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    padding: 28px 34px;
+    border-radius: 16px;
+    background: rgba(37, 37, 64, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .rule-row .verdict {
+    flex: 0 0 auto;
+    width: 58px; height: 58px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    font-size: 32px;
+    font-weight: 600;
+  }
+  .rule-row.keep .verdict { background: rgba(155, 109, 243, 0.22); color: var(--accent-light); }
+  .rule-row.drop .verdict { background: rgba(255, 255, 255, 0.06); color: rgba(240,240,245,0.35); }
+  .rule-row .headline { display: block; font-size: 28px; color: var(--off-white); }
+  .rule-row.drop .headline { color: rgba(240, 240, 245, 0.4); text-decoration: line-through; }
+  .rule-row .sub { display: block; font-size: 20px; color: rgba(240, 240, 245, 0.45); margin-top: 6px; }
+
+  /* ---- import table ----------------------------------------------------- */
+  .sheet {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+  }
+  .sheet .head {
+    display: flex;
+    padding: 26px 38px;
+    background: rgba(91, 47, 168, 0.28);
+    font-size: 22px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 245, 0.6);
+  }
+  .sheet .row {
+    display: flex;
+    padding: 26px 38px;
+    background: rgba(37, 37, 64, 0.55);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 29px;
+  }
+  .sheet .c1 { flex: 0 0 260px; color: rgba(240, 240, 245, 0.4); }
+  .sheet .c2 { flex: 0 0 70px; color: var(--accent-light); }
+  .sheet .c3 { flex: 1 1 auto; color: var(--off-white); }
+
+  /* ---- published channels ----------------------------------------------- */
+  .chan {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    padding: 30px 34px;
+    border-radius: 16px;
+    background: rgba(37, 37, 64, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .chan .fmt {
+    flex: 0 0 auto;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 21px;
+    letter-spacing: 0.08em;
+    background: rgba(91, 47, 168, 0.32);
+    color: var(--accent-light);
+  }
+  .chan .uri { flex: 1 1 auto; font-size: 30px; color: var(--off-white); }
+  .chan .src { flex: 0 0 auto; font-size: 21px; color: rgba(240, 240, 245, 0.45); }
+
+  /* ---- terminal --------------------------------------------------------- */
+  .term {
+    position: absolute;
+    top: 50%;
+    left: 900px;
+    right: -110px;
+    transform: translateY(-50%);
+    border-radius: 14px; overflow: hidden; box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.08); }
+  .term .chrome {
+    height: 44px;
+    background: #2a2a3e;
+    background-image:
+      radial-gradient(circle at 26px 22px, #ff5f57 6.5px, transparent 7px),
+      radial-gradient(circle at 52px 22px, #ffbd2e 6.5px, transparent 7px),
+      radial-gradient(circle at 78px 22px, #28ca42 6.5px, transparent 7px);
+  }
+  .term .body {
+    background: #12121f;
+    padding: 42px 44px;
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 25px;
+    line-height: 2.0;
+  }
+  .term .prompt { color: var(--accent-light); }
+  .term .cmd { color: var(--off-white); }
+  .term .out { color: rgba(240, 240, 245, 0.45); }
+  .term .ok { color: #4ade80; }
+  .term .warn { color: var(--signal); }
+  .term .blank { display: block; height: 20px; }
+
+  /* ---- footer lockup --------------------------------------------------- */
+  .footer {
+    position: absolute;
+    left: 130px;
+    bottom: 62px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+    color: rgba(240, 240, 245, 0.4);
+  }
+  .footer img { width: 40px; height: 40px; border-radius: 9px; }
+  .footer b { color: rgba(240, 240, 245, 0.72); font-weight: 600; }
+
+  /* Only render the requested slide when screenshotting */
+  body.single .slide { display: none; }
+  body.single .slide.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Cover ============================================================ -->
+<section class="slide cover" data-n="1">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Craft CMS 5</div>
+      <h1 class="gradient-text">Airwave</h1>
+      <p class="tagline">Read the web&rsquo;s feeds. Publish your own.</p>
+      <p class="lede">RSS, Atom and JSON Feed, in both directions — aggregate, filter, render, import and broadcast.</p>
+      <div class="badges">
+        <span class="badge"><span class="dot"></span> Lite free &nbsp;·&nbsp; Pro $59</span>
+        <span class="badge">Craft 5.3+ · PHP 8.2+ · no dependencies</span>
+      </div>
+    </div>
+    <div class="mark"><img src="assets/icon.svg" alt=""></div>
+  </div>
+</section>
+
+<!-- 2 · Both directions ================================================== -->
+<section class="slide statement" data-n="2">
+  <div class="inner">
+    <div class="eyebrow"><span class="rule"></span> The whole idea</div>
+    <h2>One item shape,<br>both directions</h2>
+    <div class="duplex">
+      <div class="side">
+        <div class="way">In</div>
+        <div class="fmt mono">RSS 2.0<br>RSS 1.0 <span>(RDF)</span><br>Atom 1.0<br>JSON Feed</div>
+      </div>
+      <span class="arrow"></span>
+      <div class="hub">
+        <img src="assets/icon.svg" alt="">
+        <span class="shape">Item</span>
+      </div>
+      <span class="arrow out"></span>
+      <div class="side">
+        <div class="way">Out</div>
+        <div class="fmt mono">A page<br>An entry <span>(Pro)</span><br>Your RSS feed<br>Atom, JSON Feed <span>(Pro)</span></div>
+      </div>
+    </div>
+    <p class="lede">A parsed <span class="mono">&lt;item&gt;</span>, an Atom <span class="mono">&lt;entry&gt;</span>, a stored row and an entry being
+      broadcast are all one object — so what you pull in can go straight back out.</p>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Airwave</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-airwave</div>
+</section>
+
+<!-- 3 · On the page ====================================================== -->
+<section class="slide feature" data-n="3">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> On the page</div>
+      <h2>One line,<br>or none at all</h2>
+      <p class="lede">A tag in a template, a reference tag in rich text, or a Feed field an author fills in themselves.</p>
+      <ul class="points">
+        <li><span class="tick"></span> Layouts: list, cards or titles</li>
+        <li><span class="tick"></span> Layout-only CSS — a feed looks like the page it is on</li>
+        <li><span class="tick"></span> Or override the markup entirely and loop over the items</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="card">
+      <div class="cap">In a template</div>
+      <div class="code mono">{{ <span class="tag">craft.airwave.render</span>(<span class="arg">'craft-news'</span>) }}</div>
+    </div>
+    <div class="card">
+      <div class="cap">In any rich-text field</div>
+      <div class="code mono">{airwave:<span class="arg">craft-news</span>:render}<br><span class="dim">— no template change, no editor plugin</span></div>
+    </div>
+    <div class="card">
+      <div class="cap">Several feeds, one stream <span style="text-transform:none;letter-spacing:0">(Pro)</span></div>
+      <div class="code mono">{{ <span class="tag">craft.airwave.renderMerged</span>([<span class="arg">'craft-news'</span>, <span class="arg">'php-weekly'</span>]) }}</div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Airwave</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-airwave</div>
+</section>
+
+<!-- 4 · Filters ========================================================== -->
+<section class="slide feature" data-n="4">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Filters &nbsp;·&nbsp; Pro</div>
+      <h2>Filtered on<br>the way in</h2>
+      <p class="lede">An item that was never wanted is never stored — and therefore can never turn up in an entry by accident.</p>
+      <ul class="points">
+        <li><span class="tick"></span> Keywords, categories, authors, maximum age</li>
+        <li><span class="tick"></span> Undated items are kept, not silently dropped</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="rule-row keep"><span class="verdict">&check;</span><span><b class="headline">Craft CMS 5.9 released</b><span class="sub">matches “craft”</span></span></div>
+    <div class="rule-row drop"><span class="verdict">&times;</span><span><b class="headline">Sponsored: hosting deals</b><span class="sub">excluded — “sponsored”</span></span></div>
+    <div class="rule-row keep"><span class="verdict">&check;</span><span><b class="headline">Writing a Craft plugin in 2026</b><span class="sub">matches “craft”, category <em>tutorials</em></span></span></div>
+    <div class="rule-row drop"><span class="verdict">&times;</span><span><b class="headline">Archive: notes from 2019</b><span class="sub">older than the maximum age</span></span></div>
+    <p class="note">Changing the rules only affects future items. <b>Reapply</b> is a separate button, because it deletes things.</p>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Airwave</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-airwave</div>
+</section>
+
+<!-- 5 · Import =========================================================== -->
+<section class="slide feature" data-n="5">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Import &nbsp;·&nbsp; Pro</div>
+      <h2>Feed items,<br>as real entries</h2>
+      <p class="lede">Map the parts of an item onto your own fields with a token — or with Twig, for anything a token does not cover.</p>
+      <ul class="points">
+        <li><span class="tick"></span> Preview first; it writes nothing</li>
+        <li><span class="tick"></span> Capped runs continue in the background</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sheet mono">
+      <div class="head"><span class="c1">Item</span><span class="c2"></span><span class="c3">Your entry type</span></div>
+      <div class="row"><span class="c1">title</span><span class="c2">&rarr;</span><span class="c3">Title</span></div>
+      <div class="row"><span class="c1">summary</span><span class="c2">&rarr;</span><span class="c3">excerpt</span></div>
+      <div class="row"><span class="c1">content</span><span class="c2">&rarr;</span><span class="c3">body</span></div>
+      <div class="row"><span class="c1">image</span><span class="c2">&rarr;</span><span class="c3">featureImage</span></div>
+      <div class="row"><span class="c1">categories</span><span class="c2">&rarr;</span><span class="c3">topics <span style="opacity:.5">(Tags)</span></span></div>
+    </div>
+    <p class="note">Nothing is ever imported twice. Dedupe is the record of <em>this item became that entry</em> — it survives renaming, moving and deleting.</p>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Airwave</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-airwave</div>
+</section>
+
+<!-- 6 · Publish ========================================================== -->
+<section class="slide feature" data-n="6">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Channels</div>
+      <h2>Publish<br>your own</h2>
+      <p class="lede">A channel is a URI on your site plus enough configuration to answer it. Point it at a section — or at the feeds Airwave has already collected.</p>
+      <ul class="points">
+        <li><span class="tick"></span> Cached, with a matching <span class="mono">Cache-Control</span></li>
+        <li><span class="tick"></span> Aggregated markup is purified again on the way out</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="chan"><span class="fmt">RSS</span><span class="uri mono">/blog.rss</span><span class="src">Section: Blog</span></div>
+    <div class="chan"><span class="fmt">Atom</span><span class="uri mono">/news.atom</span><span class="src">Section: News</span></div>
+    <div class="chan"><span class="fmt">JSON</span><span class="uri mono">/feed.json</span><span class="src">Section: Blog</span></div>
+    <div class="chan"><span class="fmt">RSS</span><span class="uri mono">/best-of-the-web.xml</span><span class="src">Collected items</span></div>
+    <p class="note">That last one is a curated feed of everything you subscribe to, published under your domain, without a template.</p>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Airwave</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-airwave</div>
+</section>
+
+<!-- 7 · Console ========================================================== -->
+<section class="slide feature" data-n="7">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Console</div>
+      <h2>Every feed,<br>and its health</h2>
+      <p class="lede">Refresh on a schedule, find the feeds a site advertises, or parse a URL without subscribing to it.</p>
+      <ul class="points">
+        <li><span class="tick"></span> A failed refresh never empties a feed</li>
+        <li><span class="tick"></span> <span class="mono">--due</span> respects each feed&rsquo;s own interval</li>
+      </ul>
+    </div>
+  </div>
+  <div class="term">
+    <div class="chrome"></div>
+    <div class="body">
+      <div><span class="prompt">$</span> <span class="cmd">php craft airwave/feeds</span></div>
+      <div class="out">craft-news &nbsp;·&nbsp; 48 items &nbsp;·&nbsp; <span class="ok">healthy</span> &nbsp;·&nbsp; 12m ago</div>
+      <div class="out">php-weekly &nbsp;·&nbsp; 30 items &nbsp;·&nbsp; <span class="warn">stale</span> &nbsp;&nbsp;&nbsp;·&nbsp; 6h ago</div>
+      <span class="blank"></span>
+      <div><span class="prompt">$</span> <span class="cmd">php craft airwave/feeds/refresh --due</span></div>
+      <div class="out">2 feeds refreshed, <span class="ok">14 new items</span>, 3 filtered out.</div>
+      <span class="blank"></span>
+      <div><span class="prompt">$</span> <span class="cmd">php craft airwave/feeds/discover example.com</span></div>
+      <div class="out">Found 2 &nbsp;·&nbsp; <span class="ok">/feed.xml</span> (RSS) &nbsp;·&nbsp; <span class="ok">/feed.json</span> (JSON Feed)</div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Airwave</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-airwave</div>
+</section>
+
+<script>
+  var n = new URLSearchParams(location.search).get('s');
+  if (n) {
+    document.body.classList.add('single');
+    var el = document.querySelector('.slide[data-n="' + n + '"]');
+    if (el) el.classList.add('active');
+  }
+</script>
+</body>
+</html>
