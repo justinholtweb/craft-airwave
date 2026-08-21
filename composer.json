@@ -28,7 +28,7 @@
         }
     ],
     "support": {
-        "docs": "https://craft-airwave.com/docs",
+        "docs": "https://justinholt.com/plugins/craft-airwave/docs",
         "source": "https://github.com/justinholtweb/craft-airwave",
         "issues": "https://github.com/justinholtweb/craft-airwave/issues",
         "email": "justin@justinholt.com"
@@ -71,7 +71,7 @@
         "handle": "airwave",
         "developer": "Justin Holt",
         "developerUrl": "https://justinholt.com",
-        "documentationUrl": "https://craft-airwave.com/docs",
+        "documentationUrl": "https://justinholt.com/plugins/craft-airwave/docs",
         "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-airwave/main/CHANGELOG.md",
         "class": "justinholtweb\\airwave\\Plugin"
     }
