@@ -6,6 +6,7 @@ use Craft;
 use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use justinholtweb\airwave\elements\Channel;
+use justinholtweb\airwave\helpers\Trust;
 use justinholtweb\airwave\models\ChannelMapping;
 use justinholtweb\airwave\models\Edition;
 use justinholtweb\airwave\Plugin;
@@ -140,8 +141,17 @@ class ChannelsController extends Controller
             $channel->setSourceIds((array)$request->getBodyParam('sourceIds', []));
             $channel->elementType = null;
         } else {
-            $channel->elementType = (string)$request->getBodyParam('elementType', \craft\elements\Entry::class);
-            $channel->setCriteria($this->parseCriteria($request->getBodyParam('criteria', [])));
+            $elementType = (string)$request->getBodyParam('elementType', \craft\elements\Entry::class);
+            $channel->elementType = in_array($elementType, \justinholtweb\airwave\services\Channels::ELEMENT_TYPES, true)
+                ? $elementType
+                : \craft\elements\Entry::class;
+
+            $criteria = $plugin->channels->sanitizeCriteria($this->parseCriteria($request->getBodyParam('criteria', [])));
+            $channel->setCriteria($criteria);
+
+            if (isset($criteria['orderBy']) && $plugin->channels->normalizeOrderBy((string)$criteria['orderBy']) === null) {
+                $channel->addError('orderBy', Craft::t('airwave', 'Order by an attribute such as `postDate` or `title`, or a field handle, followed by `asc` or `desc`.'));
+            }
         }
 
         $mapping = (array)$request->getBodyParam('mapping', []);
@@ -150,6 +160,16 @@ class ChannelsController extends Controller
             // Keep the knobs Lite does have; drop the templates rather than storing something the
             // renderer will ignore and an author will think is broken.
             $mapping = array_intersect_key($mapping, array_flip(['dateAttribute', 'fullContent', 'summaryLength']));
+        }
+
+        // Templates are Twig, and a channel is served publicly: only an admin may change them. A
+        // non-admin's save keeps whatever is stored, whether or not the fields were posted.
+        if (!Trust::canAuthorCode()) {
+            $existing = $channel->getMapping();
+
+            foreach (ChannelMapping::TEMPLATE_KEYS as $key) {
+                $mapping[$key] = $existing->$key;
+            }
         }
 
         $channel->setMapping(ChannelMapping::fromArray($mapping));

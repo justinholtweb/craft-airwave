@@ -115,6 +115,17 @@ Nothing downstream of `services\Parser` ever asks what dialect something arrived
   `--trashed-<id>` suffix on delete and reclaimed on restore. Same trade as Legs.
 - **Project config writes from a console script are buffered.** A `switchEdition()` at the end of a
   test script is simply lost without `saveModifiedConfigData()`.
+- **A string handed to `orderBy()` is SQL.** Yii quotes a plain column name but runs anything
+  containing `(` as an expression, so a channel's free-text order was an SQL injection on the public
+  feed until 5.0.1. `Channels::normalizeOrderBy()` allow-lists each clause and returns an array.
+- **`renderSandboxed*()` is not a sandbox on its own.** It honours Craft's `enableTwigSandbox`
+  setting, which is off by default, and it doesn't exist before Craft 5.9. Craft's default policy,
+  when it is on, also blocks ordinary feed templates like `object.image.one().url`. So Twig-bearing
+  settings are admin-only (`helpers\Trust`), and the sandboxed render is a bonus for sites that opt in.
+- **`App::parseEnv()` on a user-supplied value is a secret-reading primitive** when the result
+  leaves the server. Env references in headers are admin-only.
+- **Console requests are trusted by `Trust::canAuthorCode()`**, so the admin-only rules can only be
+  tested over HTTP — that is what `tests/integration/trust.php` is for.
 
 See also `[[craft-plugin-gotchas]]` in the shared memory for family-wide traps.
 
@@ -124,7 +135,8 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 
 ```sh
 cd ~/Sites/plugin-testing
-ddev exec php /var/www/craft-airwave/tests/integration/checks.php     # 150 checks
+ddev exec php /var/www/craft-airwave/tests/integration/checks.php     # 166 checks
+ddev exec php /var/www/craft-airwave/tests/integration/trust.php      # 10 checks, as a non-admin over HTTP
 ddev exec bash /var/www/craft-airwave/tests/integration/cp-smoke.sh   # every CP screen + write paths
 ddev exec bash -c 'find /var/www/craft-airwave/src -name "*.php" -print0 | xargs -0 -n1 php -l'
 ```

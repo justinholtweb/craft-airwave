@@ -9,6 +9,7 @@ use craft\elements\Entry;
 use craft\helpers\Db;
 use DateTime;
 use Throwable;
+use justinholtweb\airwave\helpers\Trust;
 
 /**
  * How one of your elements becomes one feed item.
@@ -31,6 +32,12 @@ class ChannelMapping
 
     /** Field handles tried, in order, when no image template is given. */
     public const IMAGE_HANDLES = ['featureImage', 'featuredImage', 'image', 'heroImage', 'thumbnail', 'coverImage'];
+
+    /**
+     * The properties that hold Twig object templates. Only admins may change them — see
+     * {@see \justinholtweb\airwave\helpers\Trust}.
+     */
+    public const TEMPLATE_KEYS = ['title', 'link', 'summary', 'content', 'author', 'image', 'categories'];
 
     public ?string $title = null;
     public ?string $link = null;
@@ -87,7 +94,7 @@ class ChannelMapping
             return $mapping;
         }
 
-        foreach (['title', 'link', 'summary', 'content', 'author', 'image', 'categories'] as $key) {
+        foreach (self::TEMPLATE_KEYS as $key) {
             if (!empty($config[$key]) && is_string($config[$key])) {
                 $mapping->$key = $config[$key];
             }
@@ -131,7 +138,7 @@ class ChannelMapping
     /** Whether anything here needs Pro. The guesses do not. */
     public function usesTemplates(): bool
     {
-        foreach (['title', 'link', 'summary', 'content', 'author', 'image', 'categories'] as $key) {
+        foreach (self::TEMPLATE_KEYS as $key) {
             if ($this->$key) {
                 return true;
             }
@@ -153,7 +160,7 @@ class ChannelMapping
         }
 
         try {
-            $value = Craft::$app->getView()->renderObjectTemplate($template, $element, [
+            $value = Trust::renderObjectTemplate($template, $element, [
                 'element' => $element,
                 'object' => $element,
             ]);

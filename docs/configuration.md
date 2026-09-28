@@ -31,6 +31,12 @@ Authorization: $FEED_TOKEN
 The `$FEED_TOKEN` is resolved from your environment at fetch time, so the token stays in `.env`
 rather than in the database — and in every backup of it.
 
+Only **admins** can add or change a header that references the environment (`$VAR`, `${VAR}` or an
+`@alias`). The header is sent to whatever server the feed URL names, so anyone who could write one
+could point a feed at their own server and read any variable in `.env`. Other users can still edit
+the feed, keep headers an admin set, and add plain ones. Connection headers such as `Host` and
+`Content-Length` can't be set at all.
+
 ## Refreshing
 
 A feed that has **never** been fetched is read inline the first time something asks for it, so a
@@ -94,6 +100,16 @@ with an object template:
 {{ object.featureImage.one().url ?? '' }}
 ```
 
+Object templates are Twig, and a channel is served on a public URL, so **only admins can change
+them** — the same rule Craft applies to its own Twig-bearing settings. Other users with the channel
+permission can edit everything else, and their saves keep the templates as they are. If you turn on
+Craft's [`enableTwigSandbox`](https://craftcms.com/docs/5.x/reference/config/general.html#enabletwigsandbox)
+(Craft 5.9+), Airwave renders these templates in the sandbox too.
+
+The **Order** setting takes attributes (`postDate`, `expiryDate`, `dateCreated`, `dateUpdated`,
+`title`, `slug`, `id`) or custom field handles, each optionally followed by `asc` or `desc` and
+separated by commas — `postDate desc, title`. A channel only ever broadcasts live entries.
+
 ## Import mapping (Pro)
 
 On a feed's **Import** tab, choose a section and entry type, decide whether new entries arrive
@@ -107,6 +123,8 @@ enabled or disabled, and map the parts of an item onto your fields — with a to
 ```twig
 {{ item.summary }} <p><a href="{{ item.url }}">Read the original on {{ item.domain }}</a></p>
 ```
+
+Anyone with the import permission can map tokens; only admins can add or change a template.
 
 Categories map onto a **Tags** field by creating tags, and onto a **Categories** field by matching
 existing ones. An aggregator inventing branches in your category tree is not a favour.

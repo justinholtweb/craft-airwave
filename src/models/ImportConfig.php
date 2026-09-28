@@ -114,6 +114,30 @@ class ImportConfig
         return $import;
     }
 
+    /**
+     * Put back any template a non-admin tried to add or change, keeping everything else they set.
+     *
+     * Tokens are data and anyone with the import permission may map them. Templates are Twig, so
+     * only an admin may write one — see {@see \justinholtweb\airwave\helpers\Trust}. Removing a
+     * template is allowed: taking code out is never the dangerous direction.
+     */
+    public function keepTemplatesFrom(self $stored): void
+    {
+        $this->titleTemplate = $stored->titleTemplate;
+
+        $map = [];
+
+        foreach ($this->fieldMap as $field => $source) {
+            if (in_array($source, self::TOKENS, true) || ($stored->fieldMap[$field] ?? null) === $source) {
+                $map[$field] = $source;
+            } elseif (isset($stored->fieldMap[$field])) {
+                $map[$field] = $stored->fieldMap[$field];
+            }
+        }
+
+        $this->fieldMap = $map;
+    }
+
     public static function fromJson(?string $json): self
     {
         $decoded = $json ? json_decode($json, true) : null;

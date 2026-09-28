@@ -24,6 +24,7 @@ $app = require CRAFT_VENDOR_PATH . '/craftcms/cms/bootstrap/console.php';
 use craft\elements\Entry;
 use justinholtweb\airwave\elements\Channel;
 use justinholtweb\airwave\elements\Source;
+use justinholtweb\airwave\helpers\Trust;
 use justinholtweb\airwave\models\ChannelMapping;
 use justinholtweb\airwave\models\DisplayOptions;
 use justinholtweb\airwave\models\Edition;
@@ -32,6 +33,7 @@ use justinholtweb\airwave\models\FilterRules;
 use justinholtweb\airwave\models\ImportConfig;
 use justinholtweb\airwave\models\Item;
 use justinholtweb\airwave\Plugin;
+use justinholtweb\airwave\services\Fetcher;
 
 $fixtures = require __DIR__ . '/fixtures.php';
 
@@ -83,7 +85,7 @@ Craft::$app->getPlugins()->switchEdition('airwave', Plugin::EDITION_PRO);
  * that had nothing to do with the code.
  */
 register_shutdown_function(function() use (&$created, &$section, &$titlelessSection, $run, $originalEdition) {
-    foreach (['entry', 'contentChannel', 'late', 'slashed', 'channel', 'importSource', 'titleless', 'empty', 'auto', 'source'] as $key) {
+    foreach (['entry', 'hiddenEntry', 'contentChannel', 'late', 'slashed', 'channel', 'importSource', 'titleless', 'empty', 'auto', 'source'] as $key) {
         if (isset($created[$key])) {
             try {
                 Craft::$app->getElements()->deleteElement($created[$key], true);
@@ -306,12 +308,58 @@ foreach ([
     'link-local metadata' => 'http://169.254.169.254/latest/meta-data/',
     'private range' => 'http://192.168.1.1/feed',
     'IPv6 loopback' => 'http://[::1]/feed',
+    'carrier-grade NAT metadata' => 'http://100.100.100.200/latest/meta-data/',
+    'IPv4-mapped loopback' => 'http://[::ffff:127.0.0.1]/feed',
+    'IPv4-mapped private' => 'http://[::ffff:10.0.0.1]/feed',
+    'IPv6 unique local' => 'http://[fd00::1]/feed',
+    'IPv6 link-local' => 'http://[fe80::1]/feed',
+    'NAT64 to a private address' => 'http://[64:ff9b::a00:1]/feed',
+    'benchmarking range' => 'http://198.18.0.1/feed',
 ] as $label => $url) {
     check("refuses $label", fn() => $plugin->fetcher->validateUrl($url) !== null ?: "allowed $url");
 }
 
 check('allows a public https URL', fn() => $plugin->fetcher->validateUrl('https://example.com/feed.xml') === null
     ?: (string)$plugin->fetcher->validateUrl('https://example.com/feed.xml'));
+
+check('allows a public IPv6 literal', fn() => $plugin->fetcher->validateUrl('https://[2606:4700:4700::1111]/feed') === null
+    ?: (string)$plugin->fetcher->validateUrl('https://[2606:4700:4700::1111]/feed'));
+
+check('connection headers are refused, ordinary ones are not', function() {
+    foreach (['Host', 'host', 'Content-Length', 'Transfer-Encoding', 'Connection'] as $name) {
+        if (!Fetcher::isForbiddenHeader($name)) {
+            return "$name was allowed";
+        }
+    }
+
+    return !Fetcher::isForbiddenHeader('Authorization') && !Fetcher::isForbiddenHeader('X-Api-Key') ?: 'refused an ordinary header';
+});
+
+check('a stored Host header is not sent', function() use ($plugin) {
+    $source = new Source();
+    $source->url = 'https://example.com/feed.xml';
+    $source->setFetchOptions(['headers' => ['Host' => 'internal.example', 'X-Token' => 'abc']]);
+
+    $headers = (new ReflectionMethod(Fetcher::class, 'headers'))->invoke($plugin->fetcher, $source, false);
+
+    return !isset($headers['Host']) && ($headers['X-Token'] ?? null) === 'abc' ?: json_encode($headers);
+});
+
+check('environment references in headers are recognised by shape', function() {
+    foreach (['$FEED_TOKEN', 'Bearer ${FEED_TOKEN}', '@root', 'a/$SECRET/b', ' $CRAFT_SECURITY_KEY '] as $value) {
+        if (!Trust::referencesEnvironment($value)) {
+            return "missed '$value'";
+        }
+    }
+
+    foreach (['Bearer abc123', 'price $5', 'user@example.com', 'a$b'] as $value) {
+        if (Trust::referencesEnvironment($value)) {
+            return "flagged '$value'";
+        }
+    }
+
+    return true;
+});
 
 // Filters
 // ---------------------------------------------------------------------------------------------
@@ -1020,6 +1068,67 @@ if (!$section) {
         return is_array($items) ?: 'threw';
     });
 
+    check('a channel order must be an attribute or field, never SQL', function() use ($plugin) {
+        foreach ([
+            '(SELECT IF(1=1, SLEEP(5), 0))',
+            'postDate, (SELECT 1)',
+            'postDate DESC; DROP TABLE x',
+            'postDate sideways',
+            'password',
+            'elements.id desc',
+            '',
+        ] as $attack) {
+            if ($plugin->channels->normalizeOrderBy($attack) !== null) {
+                return "accepted '$attack'";
+            }
+        }
+
+        return $plugin->channels->normalizeOrderBy('postDate DESC, title') === ['postDate' => SORT_DESC, 'title' => SORT_ASC]
+            ?: json_encode($plugin->channels->normalizeOrderBy('postDate DESC, title'));
+    });
+
+    check('a hostile stored order falls back to newest first instead of running', function() use ($contentChannel, $section, $entry) {
+        // Before 5.0.1 this string reached orderBy() raw, and Yii runs anything with `(` as SQL.
+        $contentChannel->setCriteria(['section' => $section->handle, 'orderBy' => '(SELECT SLEEP(3))']);
+        $started = microtime(true);
+        $titles = array_map(fn($i) => $i->title, $contentChannel->getItems());
+        $seconds = microtime(true) - $started;
+
+        return $seconds < 2 && in_array($entry->title, $titles, true) ?: sprintf('%.1fs, %s', $seconds, json_encode($titles));
+    });
+
+    check('a stored status cannot publish disabled entries', function() use ($contentChannel, $section, $entryType, $primarySiteId, &$created, $run) {
+        $hidden = new Entry();
+        $hidden->sectionId = $section->id;
+        $hidden->typeId = $entryType->id;
+        $hidden->siteId = $primarySiteId;
+        $hidden->title = "Disabled entry $run";
+        $hidden->enabled = false;
+        Craft::$app->getElements()->saveElement($hidden);
+        $created['hiddenEntry'] = $hidden;
+
+        $contentChannel->setCriteria(['section' => $section->handle, 'status' => 'disabled']);
+        $titles = array_map(fn($i) => $i->title, $contentChannel->getItems());
+
+        return !in_array($hidden->title, $titles, true) ?: 'the disabled entry was published';
+    });
+
+    check('a channel will not broadcast users', function() use ($contentChannel, $section) {
+        $contentChannel->elementType = \craft\elements\User::class;
+        $contentChannel->setCriteria([]);
+        $items = $contentChannel->getItems();
+        $contentChannel->elementType = Entry::class;
+        $contentChannel->setCriteria(['section' => $section->handle]);
+
+        return $items === [] ?: count($items) . ' users published';
+    });
+
+    check('saving criteria drops keys the query would not accept', function() use ($plugin) {
+        $clean = $plugin->channels->sanitizeCriteria(['section' => 'news', 'status' => 'disabled', 'select' => 'password', 'orderBy' => 'title']);
+
+        return $clean === ['section' => 'news', 'orderBy' => 'title'] ?: json_encode($clean);
+    });
+
     check('a stored limit cannot outrun the channel’s item limit', function() use ($contentChannel, $section) {
         $contentChannel->setCriteria(['section' => $section->handle, 'limit' => 5000]);
         $contentChannel->itemLimit = 1;
@@ -1039,6 +1148,28 @@ if (!$section) {
     check('a broken object template falls back rather than throwing', function() use ($entry) {
         $mapping = ChannelMapping::fromArray(['title' => '{{ object.thisDoesNotExist.atAll() }}']);
         return $mapping->resolve($entry)->title === (string)$entry ?: 'did not fall back';
+    });
+
+    check('a non-admin import save keeps stored templates and takes new tokens', function() {
+        $stored = ImportConfig::fromArray([
+            'titleTemplate' => '{{ item.title }}',
+            'fieldMap' => ['body' => '{{ item.summary }}', 'intro' => 'summary', 'extra' => '{{ item.url }}'],
+        ]);
+        $posted = ImportConfig::fromArray([
+            'titleTemplate' => '{{ craft.app.config.general.securityKey }}',
+            'fieldMap' => [
+                'body' => '{{ craft.users.all() }}',       // changed template: put back
+                'intro' => 'content',                      // token: accepted
+                'leak' => '{{ craft.app.db.dsn }}',         // new template: dropped
+                'extra' => '{{ item.url }}',                // unchanged template: kept
+            ],
+        ]);
+
+        $posted->keepTemplatesFrom($stored);
+
+        return $posted->titleTemplate === '{{ item.title }}'
+            && $posted->fieldMap === ['body' => '{{ item.summary }}', 'intro' => 'content', 'extra' => '{{ item.url }}']
+            ?: json_encode([$posted->titleTemplate, $posted->fieldMap]);
     });
 
     section('Importing');

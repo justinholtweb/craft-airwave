@@ -77,4 +77,9 @@ return [
     'The server answered {status}.' => 'The server answered {status}.',
     'Nothing to show yet.' => 'Nothing to show yet.',
     'Read more' => 'Read more',
+    'Only admins can change these templates, because they run as Twig on a public URL.' => 'Only admins can change these templates, because they run as Twig on a public URL.',
+    'Only admins can add or change headers that use environment variables.' => 'Only admins can add or change headers that use environment variables.',
+    'Only admins can use environment variables in request headers.' => 'Only admins can use environment variables in request headers.',
+    'The “{name}” header is set by Airwave and can’t be overridden.' => 'The “{name}” header is set by Airwave and can’t be overridden.',
+    'Order by an attribute such as `postDate` or `title`, or a field handle, followed by `asc` or `desc`.' => 'Order by an attribute such as `postDate` or `title`, or a field handle, followed by `asc` or `desc`.',
 ];

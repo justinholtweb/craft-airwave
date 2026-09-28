@@ -159,6 +159,7 @@
                 value: criteria.orderBy ?? '',
                 class: 'code',
                 placeholder: 'postDate DESC',
+                errors: channel.getErrors('orderBy'),
             }) }}
         </div>
 
@@ -192,6 +193,7 @@
             <p>
                 {{ 'Leave these blank and Airwave works it out — the title, the URL, a summary or excerpt field, an author, and the first image field it finds.'|t('airwave') }}
                 {% if not isPro %}{{ 'Object templates are a Pro feature.'|t('airwave') }}{% endif %}
+                {% if isPro and not currentUser.admin %}{{ 'Only admins can change these templates, because they run as Twig on a public URL.'|t('airwave') }}{% endif %}
             </p>
         </blockquote>
 
@@ -211,7 +213,7 @@
                 value: attribute(mapping, key),
                 placeholder: config.placeholder,
                 class: 'code',
-                disabled: not isPro,
+                disabled: not isPro or not currentUser.admin,
             }) }}
         {% endfor %}
 

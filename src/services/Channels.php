@@ -43,11 +43,20 @@ class Channels extends Component
      */
     private const ALLOWED_CRITERIA = [
         'section', 'sectionId', 'type', 'typeId', 'id', 'slug', 'uri', 'title',
-        'status', 'authorId', 'postDate', 'after', 'before', 'expiryDate',
+        'authorId', 'postDate', 'after', 'before', 'expiryDate',
         'level', 'descendantOf', 'ancestorOf', 'descendantDist', 'hasDescendants',
-        'relatedTo', 'search', 'orderBy', 'group', 'groupId', 'volume', 'volumeId',
+        'relatedTo', 'search', 'group', 'groupId', 'volume', 'volumeId',
         'kind', 'filename', 'folderId', 'field', 'editable', 'site', 'siteId', 'limit', 'offset',
     ];
+
+    /**
+     * What a channel may broadcast. Entries are the only choice the CP offers; the list exists so
+     * that a posted `elementType` of `craft\elements\User` publishes nothing rather than people.
+     */
+    public const ELEMENT_TYPES = [Entry::class];
+
+    /** Sortable attributes, by the name an author types. Custom field handles are allowed too. */
+    private const SORTABLE = ['postDate', 'expiryDate', 'dateCreated', 'dateUpdated', 'title', 'slug', 'id'];
 
     /** @var Channel[]|null */
     private ?array $_all = null;
@@ -240,6 +249,62 @@ class Channels extends Component
     }
 
     /**
+     * A channel's stored criteria with anything the query would not accept removed.
+     *
+     * @param array<string, mixed> $criteria
+     * @return array<string, mixed>
+     */
+    public function sanitizeCriteria(array $criteria): array
+    {
+        return array_filter(
+            $criteria,
+            fn($value, $param) => in_array($param, self::ALLOWED_CRITERIA, true) || $param === 'orderBy',
+            ARRAY_FILTER_USE_BOTH,
+        );
+    }
+
+    /**
+     * Turn `postDate DESC, title` into a sort Yii will quote, or null if any part is not allowed.
+     *
+     * Never handed to `orderBy()` as a string: Yii treats a string containing `(` as a raw SQL
+     * expression, so `(SELECT IF(…, SLEEP(5), 0))` in a channel's order would run on every request
+     * for the feed. Each clause must be an allowed attribute or a custom field handle, and a
+     * direction of `asc` or `desc`.
+     *
+     * @return array<string, int>|null
+     */
+    public function normalizeOrderBy(string $orderBy): ?array
+    {
+        $sort = [];
+
+        foreach (explode(',', $orderBy) as $clause) {
+            $parts = preg_split('/\s+/', trim($clause)) ?: [];
+
+            if ($parts === [''] || count($parts) > 2) {
+                return null;
+            }
+
+            [$column, $direction] = array_pad($parts, 2, 'asc');
+            $direction = strtolower($direction);
+
+            if (!in_array($direction, ['asc', 'desc'], true)) {
+                return null;
+            }
+
+            $isField = preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $column) === 1
+                && Craft::$app->getFields()->getFieldByHandle($column) !== null;
+
+            if (!in_array($column, self::SORTABLE, true) && !$isField) {
+                return null;
+            }
+
+            $sort[$column] = $direction === 'desc' ? SORT_DESC : SORT_ASC;
+        }
+
+        return $sort ?: null;
+    }
+
+    /**
      * @return Item[]
      */
     private function getAggregatedItems(Channel $channel): array
@@ -261,7 +326,7 @@ class Channels extends Component
     {
         $elementType = $channel->elementType ?: Entry::class;
 
-        if (!is_subclass_of($elementType, ElementInterface::class)) {
+        if (!in_array($elementType, self::ELEMENT_TYPES, true)) {
             return [];
         }
 
@@ -285,12 +350,13 @@ class Channels extends Component
             }
         }
 
-        // Set after the criteria so a stored `limit` cannot quietly publish 5,000 items.
+        // Set after the criteria so a stored `limit` cannot quietly publish 5,000 items, and a
+        // stored `status` (from before it left the allowlist) cannot publish disabled entries.
         $query->limit($channel->itemLimit);
+        $query->status(['enabled']);
 
-        if (!$query->orderBy) {
-            $query->orderBy(['postDate' => SORT_DESC]);
-        }
+        $orderBy = $channel->getCriteria()['orderBy'] ?? null;
+        $query->orderBy((is_string($orderBy) ? $this->normalizeOrderBy($orderBy) : null) ?? ['postDate' => SORT_DESC]);
 
         $mapping = $channel->getMapping();
         $usesTemplates = $mapping->usesTemplates() && Edition::allowsChannelTemplates(Plugin::getInstance()->isPro());

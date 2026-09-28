@@ -100,6 +100,8 @@
             value: headers|map((v, k) => k ~ ': ' ~ v)|join("\n"),
             rows: 3,
             class: 'code',
+            errors: source.getErrors('headers'),
+            tip: not currentUser.admin ? 'Only admins can add or change headers that use environment variables.'|t('airwave') : null,
         }) }}
     </div>
 
@@ -529,6 +531,10 @@
     {% endif %}
 {% endblock %}
 
+{% css %}
+    .airwave-discover-result + .airwave-discover-result { margin-top: 6px; }
+{% endcss %}
+
 {% js %}
 {# Secondary actions post with Craft.sendActionRequest rather than their own <form>: a CP page is
    already inside one, and nesting forms silently breaks the outer one's submit. #}
@@ -568,16 +574,30 @@
                     return;
                 }
 
-                results.innerHTML = data.feeds.map(feed =>
-                    `<div style="margin-bottom:6px"><button type="button" class="btn small airwave-pick" data-url="${feed.url}">${Craft.escapeHtml(feed.title || feed.url)}</button> <span class="light code">${Craft.escapeHtml(feed.url)}</span></div>`
-                ).join('');
-                results.classList.remove('hidden');
-                results.querySelectorAll('.airwave-pick').forEach(button => {
+                // Built from nodes, not an HTML string: every URL here came out of somebody else's
+                // page, and one carrying `"><img onerror=…>` would otherwise run in the CP.
+                results.replaceChildren(...data.feeds.map(feed => {
+                    const row = document.createElement('div');
+                    row.className = 'airwave-discover-result';
+
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn small';
+                    button.textContent = feed.title || feed.url;
                     button.addEventListener('click', () => {
-                        input.value = button.dataset.url;
+                        input.value = feed.url;
                         results.classList.add('hidden');
                     });
-                });
+
+                    const url = document.createElement('span');
+                    url.className = 'light code';
+                    url.textContent = feed.url;
+
+                    row.append(button, ' ', url);
+
+                    return row;
+                }));
+                results.classList.remove('hidden');
             } catch (e) {
                 busy('airwave-discover-spinner', false);
                 Craft.cp.displayError(e.message);

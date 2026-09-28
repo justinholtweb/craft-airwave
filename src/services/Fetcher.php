@@ -185,12 +185,27 @@ class Fetcher extends Component
         // with `Authorization: $FEED_TOKEN` and the token stays in `.env`, not in the database and
         // not in a database backup somebody emails around.
         foreach ((array)($source->getFetchOptions()['headers'] ?? []) as $name => $value) {
-            if (is_string($name) && $name !== '' && is_string($value)) {
+            if (is_string($name) && $name !== '' && is_string($value) && !self::isForbiddenHeader($name)) {
                 $headers[$name] = App::parseEnv($value) ?? $value;
             }
         }
 
         return $headers;
+    }
+
+    /**
+     * Headers that describe the connection rather than the request, so an author may not set them.
+     *
+     * `Host` above all: overriding it sends the request to one server while claiming to be for
+     * another, which is how a URL that passed the private-network check reaches a virtual host it
+     * was never meant to.
+     */
+    public static function isForbiddenHeader(string $name): bool
+    {
+        return in_array(strtolower(trim($name)), [
+            'host', 'content-length', 'transfer-encoding', 'connection', 'keep-alive', 'upgrade',
+            'te', 'trailer', 'proxy-connection',
+        ], true);
     }
 
     /**
@@ -296,9 +311,76 @@ class Fetcher extends Component
         return $addresses;
     }
 
+    /**
+     * Ranges PHP's `NO_PRIV_RANGE | NO_RES_RANGE` flags do not cover, or cover only on some PHP
+     * versions. Carrier-grade NAT is where some clouds put their metadata service
+     * (`100.100.100.200`), and the IPv6 transition prefixes embed an IPv4 address that may be
+     * private.
+     */
+    private const BLOCKED_RANGES = [
+        '0.0.0.0/8', '100.64.0.0/10', '127.0.0.0/8', '169.254.0.0/16', '192.0.0.0/24',
+        '192.0.2.0/24', '198.18.0.0/15', '198.51.100.0/24', '203.0.113.0/24', '224.0.0.0/4', '240.0.0.0/4',
+        '::/128', '::1/128', '64:ff9b::/96', '64:ff9b:1::/48', '100::/64', '2001::/32', '2001:db8::/32',
+        '2002::/16', 'fc00::/7', 'fe80::/10', 'ff00::/8',
+    ];
+
     private function ipIsPublic(string $ip): bool
     {
-        return (bool)filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        $packed = @inet_pton($ip);
+
+        if ($packed === false) {
+            return false;
+        }
+
+        // `::ffff:10.0.0.1` and `::10.0.0.1` are IPv4 addresses wearing IPv6 clothes; judge the
+        // address inside.
+        if (strlen($packed) === 16 && str_starts_with($packed, str_repeat("\0", 10))) {
+            $tail = substr($packed, 10, 2);
+
+            if ($tail === "\xff\xff" || $tail === "\0\0") {
+                $ip = (string)inet_ntop(substr($packed, 12));
+                $packed = substr($packed, 12);
+            }
+        }
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+
+        foreach (self::BLOCKED_RANGES as $range) {
+            if ($this->inRange($packed, $range)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function inRange(string $packed, string $cidr): bool
+    {
+        [$subnet, $bits] = explode('/', $cidr);
+        $subnet = inet_pton($subnet);
+
+        if ($subnet === false || strlen($subnet) !== strlen($packed)) {
+            return false;
+        }
+
+        $bits = (int)$bits;
+        $bytes = intdiv($bits, 8);
+
+        if (strncmp($packed, $subnet, $bytes) !== 0) {
+            return false;
+        }
+
+        $remainder = $bits % 8;
+
+        if ($remainder === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $remainder)) & 0xFF;
+
+        return (ord($packed[$bytes]) & $mask) === (ord($subnet[$bytes]) & $mask);
     }
 
     /**

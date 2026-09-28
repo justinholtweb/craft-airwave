@@ -21,6 +21,7 @@ use DateInterval;
 use DateTime;
 use DateTimeZone;
 use justinholtweb\airwave\elements\Source;
+use justinholtweb\airwave\helpers\Trust;
 use justinholtweb\airwave\models\ImportConfig;
 use justinholtweb\airwave\models\ImportResult;
 use justinholtweb\airwave\models\Item;
@@ -257,7 +258,7 @@ class Importer extends Component
     private function renderTemplate(string $template, Item $item): ?string
     {
         try {
-            return trim(Craft::$app->getView()->renderString($template, [
+            return trim(Trust::renderString($template, [
                 'item' => $item,
                 'object' => $item,
             ]));

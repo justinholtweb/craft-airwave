@@ -7,12 +7,14 @@ use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use justinholtweb\airwave\elements\Source;
 use justinholtweb\airwave\exceptions\FeedException;
+use justinholtweb\airwave\helpers\Trust;
 use justinholtweb\airwave\models\DisplayOptions;
 use justinholtweb\airwave\models\Edition;
 use justinholtweb\airwave\models\FilterRules;
 use justinholtweb\airwave\models\ImportConfig;
 use justinholtweb\airwave\Plugin;
 use justinholtweb\airwave\queue\jobs\ImportSourceJob;
+use justinholtweb\airwave\services\Fetcher;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -139,13 +141,26 @@ class FeedsController extends Controller
 
         if (Edition::allowsImporting($plugin->isPro()) && Craft::$app->getUser()->checkPermission(Plugin::PERMISSION_IMPORT)) {
             $source->importEnabled = (bool)$request->getBodyParam('importEnabled');
-            $source->setImportConfig(ImportConfig::fromArray((array)$request->getBodyParam('importConfig', [])));
+            $importConfig = ImportConfig::fromArray((array)$request->getBodyParam('importConfig', []));
+
+            if (!Trust::canAuthorCode()) {
+                $importConfig->keepTemplatesFrom($source->getImportConfig());
+            }
+
+            $source->setImportConfig($importConfig);
         }
 
         $headers = $this->parseHeaders((string)$request->getBodyParam('headers', ''));
+        $headerError = $this->checkHeaders($headers, (array)($source->getFetchOptions()['headers'] ?? []));
         $source->setFetchOptions($headers ? ['headers' => $headers] : null);
 
-        if (!$plugin->sources->saveSource($source)) {
+        if ($headerError !== null) {
+            // Added after the other assignments so the author sees everything they typed, and
+            // checked before saving because saving re-validates and would clear it.
+            $source->addError('headers', $headerError);
+        }
+
+        if ($source->hasErrors() || !$plugin->sources->saveSource($source)) {
             $this->setFailFlash(Craft::t('airwave', 'Couldn’t save feed.'));
 
             Craft::$app->getUrlManager()->setRouteParams(['source' => $source]);
@@ -393,6 +408,33 @@ class FeedsController extends Controller
      *
      * @return array<string, string>
      */
+    /**
+     * Why these headers cannot be saved by the current user, or null if they can.
+     *
+     * A header value can name an environment variable, and `Fetcher` resolves it and sends the
+     * result to whatever server the feed URL names. Pointing a feed at your own server with
+     * `X-Anything: $CRAFT_SECURITY_KEY` would read `.env`, so only an admin may add or change a
+     * header that references the environment. Headers already saved that way are kept, so a
+     * non-admin can still edit the rest of the feed.
+     *
+     * @param array<string, string> $headers
+     * @param array<string, string> $stored
+     */
+    private function checkHeaders(array $headers, array $stored): ?string
+    {
+        foreach ($headers as $name => $value) {
+            if (Fetcher::isForbiddenHeader($name)) {
+                return Craft::t('airwave', 'The “{name}” header is set by Airwave and can’t be overridden.', ['name' => $name]);
+            }
+
+            if (!Trust::canAuthorCode() && Trust::referencesEnvironment($value) && ($stored[$name] ?? null) !== $value) {
+                return Craft::t('airwave', 'Only admins can use environment variables in request headers.');
+            }
+        }
+
+        return null;
+    }
+
     private function parseHeaders(string $raw): array
     {
         $headers = [];
