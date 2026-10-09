@@ -8,6 +8,7 @@ use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\services\Dashboard;
 use craft\services\Elements;
 use craft\services\Fields;
 use craft\services\UserPermissions;
@@ -17,6 +18,7 @@ use justinholtweb\airwave\elements\Channel;
 use justinholtweb\airwave\elements\Source;
 use justinholtweb\airwave\fields\FeedField;
 use justinholtweb\airwave\models\Settings;
+use justinholtweb\airwave\services\Alerts;
 use justinholtweb\airwave\services\Broadcaster;
 use justinholtweb\airwave\services\Channels;
 use justinholtweb\airwave\services\Fetcher;
@@ -27,6 +29,7 @@ use justinholtweb\airwave\services\Parser;
 use justinholtweb\airwave\services\Renderer;
 use justinholtweb\airwave\services\Sources;
 use justinholtweb\airwave\twig\AirwaveVariable;
+use justinholtweb\airwave\widgets\FeedHealthWidget;
 use yii\base\Event;
 
 /**
@@ -54,6 +57,7 @@ use yii\base\Event;
  * @property-read Channels $channels
  * @property-read Broadcaster $broadcaster
  * @property-read Renderer $renderer
+ * @property-read Alerts $alerts
  * @property-read Settings $settings
  *
  * @method Settings getSettings()
@@ -73,7 +77,7 @@ class Plugin extends BasePlugin
     /** Log category used by everything in the plugin. */
     public const LOG_CATEGORY = 'airwave';
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
     public bool $hasCpSection = true;
     public bool $hasCpSettings = true;
 
@@ -98,6 +102,7 @@ class Plugin extends BasePlugin
                 'channels' => Channels::class,
                 'broadcaster' => Broadcaster::class,
                 'renderer' => Renderer::class,
+                'alerts' => Alerts::class,
             ],
         ];
     }
@@ -111,6 +116,7 @@ class Plugin extends BasePlugin
         $this->registerCpRoutes();
         $this->registerPermissions();
         $this->registerTwig();
+        $this->registerWidgets();
 
         // Channel URIs are site URL rules, so this has to run on every front-end request. It reads
         // a cached map rather than the database — see Channels::getRouteMap().
@@ -260,6 +266,13 @@ class Plugin extends BasePlugin
                     ],
                 ],
             ];
+        });
+    }
+
+    private function registerWidgets(): void
+    {
+        Event::on(Dashboard::class, Dashboard::EVENT_REGISTER_WIDGET_TYPES, function(RegisterComponentTypesEvent $event) {
+            $event->types[] = FeedHealthWidget::class;
         });
     }
 

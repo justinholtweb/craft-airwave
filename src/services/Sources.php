@@ -202,6 +202,7 @@ class Sources extends Component
                 'lastError' => null,
                 'newItemCount' => 0,
             ]);
+            $plugin->alerts->afterRefresh($source, true);
 
             return RefreshResult::unchanged();
         }
@@ -253,6 +254,8 @@ class Sources extends Component
             'itemCount' => $plugin->items->countForSource((int)$source->id),
             'newItemCount' => $result->new,
         ]);
+        // Before the import: a failing import is a mapping problem, not a failing feed.
+        $plugin->alerts->afterRefresh($source, true);
 
         if ($source->importEnabled && $settings->importOnRefresh && Edition::allowsImporting($plugin->isPro())) {
             try {
@@ -377,6 +380,9 @@ class Sources extends Component
             'lastError' => mb_substr($message, 0, 1000),
             'newItemCount' => 0,
         ]);
+
+        // Fail-open inside: counts the failure and sends an alert if this one crossed the line.
+        Plugin::getInstance()->alerts->afterRefresh($source, false);
     }
 
     /**

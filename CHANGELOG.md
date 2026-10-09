@@ -1,5 +1,24 @@
 # Release Notes for Airwave
 
+## Unreleased
+
+### Added
+
+- Failing-feed alerts. Airwave now emails (and optionally posts to Slack, Teams or a signed JSON
+  webhook) once when a feed has failed several refreshes in a row and once when it recovers, with an
+  optional alert for a feed that has stopped refreshing altogether. Set them up under
+  **Settings → Airwave → Alerts**; there's a **Send a test alert** button. Each feed has its own
+  latch, so a feed failing fifty times is one alert, and a flapping feed waits out a quiet period.
+- A **Feed health** Dashboard widget listing the library's totals and every failing feed, with its
+  last successful refresh and item count.
+- `airwave/alerts/check` and `airwave/alerts/test` console commands. `airwave/feeds/refresh` runs
+  the alert check when it finishes.
+- Console equivalents for every bulk action in the control panel: `airwave/feeds/reapply-filters`,
+  `airwave/feeds/enable`, `airwave/feeds/disable`, `airwave/feeds/delete`, `airwave/items/delete`
+  (by ID, feed, search or date, with `--dry-run`; imported items need `--include-imported`), and
+  `airwave/channels/enable`, `airwave/channels/disable` and `airwave/channels/delete`.
+- `Alerts::EVENT_BEFORE_NOTIFY`, to reword or suppress an alert.
+
 ## 5.0.1 — 2026-09-28
 
 ### Security

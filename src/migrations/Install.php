@@ -127,6 +127,9 @@ class Install extends Migration
         $this->addForeignKey(null, '{{%airwave_channels}}', ['id'], CraftTable::ELEMENTS, ['id'], 'CASCADE', null);
         $this->addForeignKey(null, '{{%airwave_channels}}', ['targetSiteId'], CraftTable::SITES, ['id'], 'CASCADE', 'CASCADE');
 
+        // Failing-feed alerts. Defined once, in the migration that added it.
+        m261009_000000_alerts::createAlertsTable($this);
+
         return true;
     }
 
@@ -136,6 +139,7 @@ class Install extends Migration
         // would leave rows in `elements` pointing at element types that no longer exist.
         $this->delete(CraftTable::ELEMENTS, ['type' => Source::class]);
         $this->delete(CraftTable::ELEMENTS, ['type' => Channel::class]);
+        $this->dropTableIfExists(m261009_000000_alerts::TABLE);
         $this->dropTableIfExists('{{%airwave_items}}');
         $this->dropTableIfExists('{{%airwave_channels}}');
         $this->dropTableIfExists('{{%airwave_sources}}');

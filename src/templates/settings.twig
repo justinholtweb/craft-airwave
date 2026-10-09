@@ -175,3 +175,110 @@
     name: 'importOnRefresh',
     on: settings.importOnRefresh,
 }) }}
+
+<hr>
+
+<h2>{{ 'Alerts'|t('airwave') }}</h2>
+
+<p class="light">{{ 'One message when a feed gets into trouble, one when it is refreshing again — never one per failed refresh. Alerts are checked after every refresh; a feed that has stopped refreshing altogether can only be noticed by `php craft airwave/alerts/check` (or `airwave/feeds/refresh`) on cron.'|t('airwave') }}</p>
+
+{{ forms.autosuggestField({
+    label: 'Email alerts to'|t('airwave'),
+    instructions: 'Addresses separated by commas, or an environment variable. Leave empty for no email.'|t('airwave'),
+    id: 'alertRecipients',
+    name: 'alertRecipients',
+    suggestEnvVars: true,
+    value: settings.alertRecipients,
+    errors: settings.getErrors('alertRecipients'),
+}) }}
+
+{{ forms.autosuggestField({
+    label: 'Slack or Teams webhook URL'|t('airwave'),
+    instructions: 'Optional. An incoming-webhook URL — best kept in an environment variable, because the URL is the credential. Only public hosts are allowed and redirects are never followed.'|t('airwave'),
+    id: 'alertWebhookUrl',
+    name: 'alertWebhookUrl',
+    suggestEnvVars: true,
+    value: settings.alertWebhookUrl,
+    errors: settings.getErrors('alertWebhookUrl'),
+}) }}
+
+{{ forms.selectField({
+    label: 'Webhook format'|t('airwave'),
+    id: 'alertWebhookFormat',
+    name: 'alertWebhookFormat',
+    options: [
+        { value: 'slack', label: 'Slack'|t('airwave') },
+        { value: 'teams', label: 'Microsoft Teams'|t('airwave') },
+        { value: 'json', label: 'Plain JSON (your own receiver)'|t('airwave') },
+    ],
+    value: settings.alertWebhookFormat,
+    errors: settings.getErrors('alertWebhookFormat'),
+}) }}
+
+{{ forms.autosuggestField({
+    label: 'Webhook signing secret'|t('airwave'),
+    instructions: 'Optional. When set, each webhook carries `X-Airwave-Timestamp` and `X-Airwave-Signature: sha256=…`, an HMAC of `timestamp.body`, so your own receiver can verify it. Slack and Teams ignore it.'|t('airwave'),
+    id: 'alertWebhookSecret',
+    name: 'alertWebhookSecret',
+    suggestEnvVars: true,
+    value: settings.alertWebhookSecret,
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Alert when a feed keeps failing'|t('airwave'),
+    id: 'alertOnFailingFeeds',
+    name: 'alertOnFailingFeeds',
+    on: settings.alertOnFailingFeeds,
+    toggle: 'airwave-alert-failing',
+}) }}
+
+<div id="airwave-alert-failing" class="{{ settings.alertOnFailingFeeds ? '' : 'hidden' }}">
+    {{ forms.textField({
+        label: 'Failed refreshes in a row'|t('airwave'),
+        instructions: 'This many failures without a success in between opens an alert. The first successful refresh closes it.'|t('airwave'),
+        id: 'alertFailureThreshold',
+        name: 'alertFailureThreshold',
+        type: 'number',
+        size: 5,
+        value: settings.alertFailureThreshold,
+        errors: settings.getErrors('alertFailureThreshold'),
+    }) }}
+</div>
+
+{{ forms.textField({
+    label: 'Alert when a feed hasn’t refreshed for'|t('airwave'),
+    instructions: 'Hours without a successful refresh — or twice the feed’s interval, if that is longer. Zero switches it off; leave it off if feeds only refresh when somebody views them.'|t('airwave'),
+    id: 'alertStaleHours',
+    name: 'alertStaleHours',
+    type: 'number',
+    size: 5,
+    value: settings.alertStaleHours,
+    errors: settings.getErrors('alertStaleHours'),
+}) }}
+
+{{ forms.textField({
+    label: 'Quiet period after a recovery'|t('airwave'),
+    instructions: 'Minutes. An incident that comes straight back is reported when this ends, if it is still happening — so a flapping feed cannot fill an inbox.'|t('airwave'),
+    id: 'alertCooldownMinutes',
+    name: 'alertCooldownMinutes',
+    type: 'number',
+    size: 5,
+    value: settings.alertCooldownMinutes,
+    errors: settings.getErrors('alertCooldownMinutes'),
+}) }}
+
+<div class="field">
+    <button type="button" class="btn" id="airwave-test-alert">{{ 'Send a test alert'|t('airwave') }}</button>
+    <p class="light">{{ 'Uses the saved settings — save first.'|t('airwave') }}</p>
+</div>
+
+{% js %}
+    document.getElementById('airwave-test-alert')?.addEventListener('click', (e) => {
+        const button = e.currentTarget;
+        button.classList.add('loading');
+        Craft.sendActionRequest('POST', 'airwave/alerts/test')
+            .then((response) => Craft.cp.displaySuccess(response.data.message))
+            .catch(({response}) => Craft.cp.displayError(response?.data?.message || Craft.t('airwave', 'The test could not be sent.')))
+            .finally(() => button.classList.remove('loading'));
+    });
+{% endjs %}

@@ -60,6 +60,52 @@ If a fetch fails — the host is down, the document is malformed, the certificat
 already stored stay exactly where they are and keep rendering. Only the health indicator on the
 feed changes. A publisher's bad afternoon should not blank a section of your homepage.
 
+## Failing-feed alerts
+
+Because a failed refresh never empties a feed, a feed can be broken for a month without anybody
+noticing. Alerts are how somebody notices: **one** email (and, optionally, one Slack, Teams or JSON
+webhook post) when a feed gets into trouble, and one when it is refreshing again — never one per
+failed refresh. Set them up under **Settings → Airwave → Alerts**.
+
+| Incident | Opens when | Closes when |
+|---|---|---|
+| **Feed failing** | *Failed refreshes in a row* (default 3) have failed with no success in between | The next successful refresh (a `304 Not Modified` counts) |
+| **Feed not refreshing** | No successful refresh for *N hours*, or twice the feed's interval if that is longer. Off (0) by default | A successful refresh |
+
+Each feed has its own latch per incident, so ten failing feeds are ten alerts, and one feed failing
+fifty times is one. An incident that reopens inside the **quiet period** after its recovery
+(default 60 minutes) is reported when the period ends, if it is still happening, so a flapping
+feed cannot fill an inbox. A send that fails is retried on the next check rather than lost.
+
+Failures are counted at the end of every refresh, whoever started it — a page view, the queue, the
+CP or cron. A feed that has stopped refreshing *altogether* can only be noticed by a check, which
+`airwave/feeds/refresh` runs when it finishes; `php craft airwave/alerts/check` runs it on its own.
+Leave **Feed not refreshing** off if your feeds only refresh when somebody views them.
+
+| Setting | |
+|---|---|
+| **Email alerts to** | Addresses separated by commas, or an environment variable. Empty means no email. |
+| **Slack or Teams webhook URL** | Optional. Keep it in an environment variable: the URL is the credential. |
+| **Webhook format** | Slack, Microsoft Teams (Adaptive Card), or plain JSON for your own receiver. |
+| **Webhook signing secret** | Optional. Adds `X-Airwave-Timestamp` and `X-Airwave-Signature: sha256=<hmac of "timestamp.body">`. |
+| **Send a test alert** | Sends to the *saved* settings. Admins only. |
+
+The webhook only goes to public addresses: the host is resolved and every address checked, the
+connection is pinned to those addresses, and redirects are never followed. `allowPrivateAlertWebhookHosts`
+in `config/airwave.php` lets it reach a self-hosted chat server on your network; it is not tied to
+**Allow private network fetches**, which is about feed hosts. Messages say which feed, what
+happened and where to look; the feed's URL is left out (it can carry a token), and error text is
+stripped of query strings, request-header secrets and anything shaped like a credential.
+
+The `justinholtweb\airwave\services\Alerts::EVENT_BEFORE_NOTIFY` event lets a module reword an alert,
+or swallow it by setting `$event->isValid = false`.
+
+### Feed health widget
+
+Add **Feed health** to the Dashboard for a tile with the library's totals and every feed that is
+failing or has an open alert, with its last successful refresh and item count. It reads the same
+latch the alerts come from, and needs the *View feeds and items* permission.
+
 ## Filters (Pro)
 
 Filters are rules about what is allowed in, and they run **on the way in**. An item that was never

@@ -9,7 +9,7 @@ is how this README stays off the site.
 | File | Page |
 |---|---|
 | `installation.md` | Requirements, install, first feed, editions |
-| `configuration.md` | Feed options, refreshing, filters, channels, settings, permissions |
+| `configuration.md` | Feed options, refreshing, failing-feed alerts, filters, channels, settings, permissions |
 | `usage.md` | Rendering, reference tags, the Feed field, publishing, importing, console |
 | `troubleshooting.md` | What to check when a feed, a channel or an import misbehaves |
 | `faq.md` | The questions worth answering before installing it |

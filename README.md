@@ -36,6 +36,7 @@ php craft plugin/install airwave
 | Published channels | 1 | Unlimited |
 | Output formats | RSS 2.0 | RSS, Atom, JSON Feed |
 | Display, caching, refresh | ✓ | ✓ |
+| Failing-feed alerts (email, Slack/Teams/webhook) and the Feed health widget | ✓ | ✓ |
 | Reference tags and the Feed field | ✓ | ✓ |
 | Keyword, category, author and date filters | | ✓ |
 | Import items as entries | | ✓ |
@@ -74,6 +75,19 @@ php craft airwave/feeds/refresh --due
 
 `--due` fetches only the feeds whose own interval has elapsed, so the schedule stays per feed
 rather than becoming whatever the crontab says.
+
+### Failing-feed alerts
+
+A failed refresh never empties a feed, which also means nobody notices one. Under **Settings →
+Airwave → Alerts**, give Airwave some email addresses (and, if you like, a Slack, Teams or JSON
+webhook) and it sends **one** message when a feed has failed a few refreshes in a row (3 by
+default) and one when it is refreshing again — never one per failure. Optionally it also tells you
+when a feed has not refreshed at all for a while, which is how a missing cron line shows up.
+
+Each feed has its own latch, a reopening straight after a recovery waits out a quiet period, and a
+send that fails is retried rather than lost. The webhook only goes to public addresses, pinned and
+without following redirects, and can be HMAC-signed. The **Feed health** Dashboard widget shows the
+library's totals and every feed in trouble. See [Configuration](docs/configuration.md#failing-feed-alerts).
 
 ---
 
@@ -226,9 +240,23 @@ php craft airwave/feeds/prune --keep=50
 php craft airwave/feeds/discover example.com # find the feeds a site advertises
 php craft airwave/feeds/test <url>           # fetch and parse without subscribing
 
+php craft airwave/feeds/reapply-filters --handle=craft-news   # Pro; re-run filters over stored items
+php craft airwave/feeds/disable --handle=one,two             # also enable, delete; or --all
+php craft airwave/items/delete --handle=craft-news --before=2024-01-01 --dry-run
+php craft airwave/items/delete --ids=12,13                   # imported items need --include-imported
+
 php craft airwave/channels                   # every published feed and its URL
 php craft airwave/channels/preview blog      # print the document
+php craft airwave/channels/disable --handle=blog             # also enable, delete; or --all
+
+php craft airwave/alerts/check               # evaluate every feed, send any alert or recovery owed
+php craft airwave/alerts/test                # send a sample alert to the saved recipients/webhook
 ```
+
+Every bulk action in the control panel has a console equivalent that goes through the same service:
+**Refresh** and **Refresh all**, **Re-apply filters**, **Import**, deleting items, and the feed and
+channel indexes' **Set status** and **Delete**. Bulk commands want `--handle` (comma-separated) or
+`--all`, ask before deleting anything, and take `--interactive=0` in scripts.
 
 `airwave/feeds/test` is the one to reach for when a feed is not behaving: it fetches, parses and
 prints what Airwave made of it, without touching the site.
@@ -278,7 +306,9 @@ so the token stays in `.env` rather than in the database and in every backup of 
 Inside the plugin-testing harness:
 
 ```sh
-ddev exec php /var/www/craft-airwave/tests/integration/checks.php   # 150 checks
+ddev exec php /var/www/craft-airwave/tests/integration/checks.php   # 167 checks
+ddev exec php /var/www/craft-airwave/tests/integration/alerts.php   # 44 checks: alerts, widget, test endpoint over HTTP
+ddev exec php /var/www/craft-airwave/tests/integration/console.php  # 15 checks: every console bulk action, run for real
 ddev exec bash /var/www/craft-airwave/tests/integration/cp-smoke.sh # every CP screen and write path
 ```
 

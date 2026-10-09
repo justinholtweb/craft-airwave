@@ -1,0 +1,54 @@
+{# The Dashboard tile. `overview` comes from Alerts::overview(): totals, and the feeds in trouble. #}
+{% set stats = overview.stats %}
+
+{% if not stats.sources %}
+    <p class="light">{{ 'No feeds yet.'|t('airwave') }} <a href="{{ url('airwave/feeds/new') }}">{{ 'Add one'|t('airwave') }}</a></p>
+{% else %}
+    <p class="light">
+        {{ '{feeds, plural, =1{1 feed} other{# feeds}}, {items, plural, =1{1 item} other{# items}}, {imported} imported.'|t('airwave', {
+            feeds: stats.sources,
+            items: stats.items,
+            imported: stats.imported|number,
+        }) }}
+    </p>
+
+    {% if overview.rows|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ 'Feed'|t('airwave') }}</th>
+                    <th scope="col">{{ 'Last success'|t('airwave') }}</th>
+                    <th scope="col">{{ 'Items'|t('airwave') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in overview.rows %}
+                    {% set source = row.source %}
+                    <tr>
+                        <td>
+                            <a href="{{ url('airwave/feeds/' ~ source.id) }}">{{ source.getUiLabel() }}</a>
+                            {% if not source.enabled %}
+                                <span class="light">({{ 'disabled'|t('airwave') }})</span>
+                            {% endif %}
+                            {% for incident in row.incidents %}
+                                <div class="error" title="{{ incident.detail }}">{{ incident.label }}</div>
+                            {% else %}
+                                <div class="error" title="{{ source.lastError }}">{{ 'Last refresh failed'|t('airwave') }}</div>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if source.lastSuccessAt %}
+                                {{ source.lastSuccessAt|timestamp('short') }}
+                            {% else %}
+                                <span class="light">{{ 'Never'|t('airwave') }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ source.itemCount|number }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p><span class="status green"></span>{{ 'Every feed is refreshing.'|t('airwave') }}</p>
+    {% endif %}
+{% endif %}

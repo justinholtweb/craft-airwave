@@ -59,6 +59,7 @@ Nothing downstream of `services\Parser` ever asks what dialect something arrived
 - `channels` — routing and contents
 - `broadcaster` — items → RSS/Atom/JSON
 - `renderer` — items → a page
+- `alerts` — failing-feed alerts: per-feed latch in `airwave_alerts`, email + guarded webhook, Feed health widget
 
 ### Rules the code does not break
 
@@ -127,6 +128,33 @@ Nothing downstream of `services\Parser` ever asks what dialect something arrived
 - **Console requests are trusted by `Trust::canAuthorCode()`**, so the admin-only rules can only be
   tested over HTTP — that is what `tests/integration/trust.php` is for.
 
+## Failing-feed alerts (port of craft-erpy's Theme 1 reference)
+
+`services\Alerts` is Erpy's `Alerts` keyed per **feed** (`sourceId`) instead of per connection.
+Two incidents: `failing` (`alertFailureThreshold` refreshes in a row failed; the count lives in the
+latch row's `failures` column, incremented with an SQL expression and reset by the first success)
+and `stale` (no `lastSuccessAt` for `max(alertStaleHours, 2 × interval)`; off by default because
+`refreshOnRequest` sites legitimately leave unviewed feeds unrefreshed). `Sources::refresh()` calls
+`afterRefresh()` on every outcome — before the import on success, so an import error is not a
+failing feed. Unchanged from the reference: conditional-UPDATE claim/release, cooldown via
+`quietUntil`, redaction before anything leaves, the webhook through `webhookTarget()` (`helpers\Ip`,
+the family copy — **not** `Fetcher`'s private-network check, and not tied to
+`allowPrivateNetworkFetches`), `CURLOPT_RESOLVE` pin, no redirects, curl-only client, HMAC header.
+
+- **The detail column must not be fed back into itself.** The first version stored the raw error in
+  `detail` and composed "N failed. Latest: {detail}" from it, so a second check nested the message.
+  The error is read from the feed's own `lastError` at compose time instead.
+- **Redact the feed URL, not just credentials.** Guzzle's connect errors quote the full URL, query
+  string and all, and a private feed's token lives there.
+
+## Console parity
+
+Every CP bulk/maintenance action has a console command through the same service: refresh (one/all),
+reapply-filters, import (dry run), item delete (`Items::deleteByIds`), and the element indexes'
+Set status / Delete for feeds and channels (`Sources::saveSource`/`deleteSource`,
+`Channels::saveChannel`/`deleteChannel`). Bulk commands need `--handle=a,b` or `--all` — no target
+never means everything. `tests/integration/console.php` runs each one as a real `php craft` process.
+
 See also `[[craft-plugin-gotchas]]` in the shared memory for family-wide traps.
 
 ## Testing
@@ -135,7 +163,9 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 
 ```sh
 cd ~/Sites/plugin-testing
-ddev exec php /var/www/craft-airwave/tests/integration/checks.php     # 166 checks
+ddev exec php /var/www/craft-airwave/tests/integration/checks.php     # 167 checks
+ddev exec php /var/www/craft-airwave/tests/integration/alerts.php     # 44 checks: alerts, widget, test endpoint over HTTP
+ddev exec php /var/www/craft-airwave/tests/integration/console.php    # 15 checks: console bulk actions as real processes
 ddev exec php /var/www/craft-airwave/tests/integration/trust.php      # 10 checks, as a non-admin over HTTP
 ddev exec bash /var/www/craft-airwave/tests/integration/cp-smoke.sh   # every CP screen + write paths
 ddev exec bash -c 'find /var/www/craft-airwave/src -name "*.php" -print0 | xargs -0 -n1 php -l'

@@ -152,9 +152,23 @@ php craft airwave/feeds/prune --keep=50
 php craft airwave/feeds/discover example.com # find the feeds a site advertises
 php craft airwave/feeds/test <url>           # fetch and parse without subscribing
 
+php craft airwave/feeds/reapply-filters --handle=craft-news   # Pro; re-run filters over stored items
+php craft airwave/feeds/disable --handle=one,two             # also enable, delete; or --all
+php craft airwave/items/delete --handle=craft-news --before=2024-01-01 --dry-run
+php craft airwave/items/delete --ids=12,13                   # imported items need --include-imported
+
 php craft airwave/channels                   # every published feed and its URL
 php craft airwave/channels/preview blog      # print the document
+php craft airwave/channels/disable --handle=blog             # also enable, delete; or --all
+
+php craft airwave/alerts/check               # evaluate every feed, send any alert or recovery owed
+php craft airwave/alerts/test                # send a sample alert to the saved recipients/webhook
 ```
+
+Every bulk action in the control panel has a console equivalent that goes through the same service:
+**Refresh** and **Refresh all**, **Re-apply filters**, **Import**, deleting items, and the feed and
+channel indexes' **Set status** and **Delete**. Bulk commands want `--handle` (comma-separated) or
+`--all`, ask before deleting anything, and take `--interactive=0` in scripts.
 
 `airwave/feeds/test` is the one to reach for when a feed is not behaving. It fetches, parses and
 prints what Airwave made of the document, without subscribing to it and without touching the site.
