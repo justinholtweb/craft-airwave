@@ -2,7 +2,7 @@
     "name": "justinholtweb/craft-airwave",
     "description": "Pull the web's feeds into your site and publish your own — an RSS, Atom and JSON Feed aggregator, importer and broadcaster for Craft CMS.",
     "type": "craft-plugin",
-    "version": "5.0.1",
+    "version": "5.1.0",
     "keywords": [
         "craft",
         "cms",

@@ -1,7 +1,6 @@
 # Release Notes for Airwave
 
-## Unreleased
-
+## 5.1.0 — 2026-10-09
 ### Added
 
 - Failing-feed alerts. Airwave now emails (and optionally posts to Slack, Teams or a signed JSON
