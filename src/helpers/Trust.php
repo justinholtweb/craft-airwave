@@ -60,6 +60,7 @@ final class Trust
     {
         $view = Craft::$app->getView();
 
+        // @phpstan-ignore function.alreadyNarrowedType (absent before Craft 5.9; composer allows ^5.3)
         if (method_exists($view, 'renderSandboxedObjectTemplate')) {
             return $view->renderSandboxedObjectTemplate($template, $object, $variables, View::TEMPLATE_MODE_SITE);
         }
@@ -72,6 +73,7 @@ final class Trust
     {
         $view = Craft::$app->getView();
 
+        // @phpstan-ignore function.alreadyNarrowedType (absent before Craft 5.9; composer allows ^5.3)
         if (method_exists($view, 'renderSandboxedString')) {
             return $view->renderSandboxedString($template, $variables, View::TEMPLATE_MODE_SITE);
         }

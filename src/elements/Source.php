@@ -124,7 +124,7 @@ class Source extends Element
         return false;
     }
 
-    public static function find(): ElementQueryInterface
+    public static function find(): SourceQuery
     {
         return new SourceQuery(static::class);
     }

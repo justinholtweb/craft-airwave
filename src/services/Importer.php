@@ -7,7 +7,6 @@ use craft\base\FieldInterface;
 use craft\elements\Asset;
 use craft\elements\Entry;
 use craft\elements\Tag;
-use craft\errors\InvalidSubpathException;
 use craft\fields\Assets as AssetsField;
 use craft\fields\Categories as CategoriesField;
 use craft\fields\Tags as TagsField;
@@ -102,13 +101,8 @@ class Importer extends Component
 
             try {
                 $entry = $this->createEntry($item, $source, $config, $section, $entryType);
-
-                if ($entry) {
-                    Plugin::getInstance()->items->markImported((int)$item->id, (int)$entry->id);
-                    $result->created++;
-                } else {
-                    $result->failed++;
-                }
+                Plugin::getInstance()->items->markImported((int)$item->id, (int)$entry->id);
+                $result->created++;
             } catch (Throwable $e) {
                 $result->failed++;
                 $result->errors[] = sprintf('%s: %s', $item->getTitleText(), $e->getMessage());
@@ -122,7 +116,7 @@ class Importer extends Component
     /**
      * @throws Throwable
      */
-    private function createEntry(Item $item, Source $source, ImportConfig $config, Section $section, \craft\models\EntryType $entryType): ?Entry
+    private function createEntry(Item $item, Source $source, ImportConfig $config, Section $section, \craft\models\EntryType $entryType): Entry
     {
         $entry = new Entry();
         $entry->sectionId = $section->id;
@@ -158,7 +152,7 @@ class Importer extends Component
         $fieldValues = [];
 
         foreach ($config->fieldMap as $handle => $sourceToken) {
-            $field = $entryType->getFieldLayout()?->getFieldByHandle($handle);
+            $field = $entryType->getFieldLayout()->getFieldByHandle($handle);
 
             if (!$field) {
                 continue;
@@ -399,7 +393,7 @@ class Importer extends Component
             $temp = null;
 
             return $asset->id;
-        } catch (InvalidSubpathException|Throwable $e) {
+        } catch (Throwable $e) {
             Craft::warning("Airwave could not import an image: {$e->getMessage()}", 'airwave');
 
             return null;

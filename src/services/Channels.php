@@ -301,7 +301,7 @@ class Channels extends Component
             $sort[$column] = $direction === 'desc' ? SORT_DESC : SORT_ASC;
         }
 
-        return $sort ?: null;
+        return $sort;
     }
 
     /**
@@ -344,9 +344,10 @@ class Channels extends Component
             }
 
             try {
+                // @phpstan-ignore-next-line (method.notFound for every allowlisted param; the concrete query class is only known at runtime)
                 $query->$param($value);
             } catch (Throwable $e) {
-                Craft::warning("Airwave channel {$channel->handle} ignored criteria “$param”: {$e->getMessage()}", 'airwave');
+                Craft::warning("Airwave channel {$channel->handle} ignored criteria “{$param}”: {$e->getMessage()}", 'airwave');
             }
         }
 

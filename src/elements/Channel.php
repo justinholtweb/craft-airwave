@@ -111,7 +111,7 @@ class Channel extends Element
         return false;
     }
 
-    public static function find(): ElementQueryInterface
+    public static function find(): ChannelQuery
     {
         return new ChannelQuery(static::class);
     }

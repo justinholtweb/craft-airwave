@@ -3,6 +3,7 @@
 namespace justinholtweb\airwave\fields;
 
 use Craft;
+use craft\base\Element;
 use craft\base\ElementInterface;
 use craft\base\Field;
 use craft\helpers\Cp;
@@ -131,7 +132,7 @@ class FeedField extends Field
         return [
             [
                 'validateSelection',
-                'on' => [ElementInterface::SCENARIO_LIVE, ElementInterface::SCENARIO_DEFAULT],
+                'on' => [Element::SCENARIO_LIVE, Element::SCENARIO_DEFAULT],
             ],
         ];
     }
